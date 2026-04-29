@@ -69,8 +69,8 @@ const MissionDraftLayers = React.memo(({ waypoints, onUpdateWaypoint }) => {
             iconAnchor: [12, 12]
           })}
         >
-          <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-            <span className="mono" style={{ fontSize: '10px' }}>WP_${idx+1}: ${wp.lat.toFixed(4)}, ${wp.lng.toFixed(4)}</span>
+          <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent className="target-tooltip">
+            {`WP_${idx+1}: ${Number(wp.lat || 0).toFixed(4)}, ${Number(wp.lng || 0).toFixed(4)}`}
           </Tooltip>
         </Marker>
       ))}
@@ -80,8 +80,16 @@ const MissionDraftLayers = React.memo(({ waypoints, onUpdateWaypoint }) => {
   return JSON.stringify(prev.waypoints) === JSON.stringify(next.waypoints);
 });
 
-function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime }) {
+function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime, isIndependent }) {
   const markerRef = React.useRef(null);
+  const map = useMap();
+  const [zoom, setZoom] = React.useState(map.getZoom());
+
+  useEffect(() => {
+    const handleZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => { map.off('zoomend', handleZoom); };
+  }, [map]);
 
   useEffect(() => {
     if (forcePopupTime && markerRef.current) {
@@ -89,9 +97,20 @@ function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime }) 
     }
   }, [forcePopupTime]);
 
-  const iconHtml = `<div style="width:14px; height:14px; background:${swarmColor}; border:${isFocused ? '2px' : '1px'} solid #fff; box-shadow: 0 0 ${isFocused ? '12px' : '4px'} ${swarmColor}; transform: ${isFocused ? 'scale(1.3)' : 'none'}; transition: all 0.2s;"></div>`;
-  const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [14, 14], iconAnchor: [7, 7] });
-  
+  // Dynamically calculate size based on zoom level (e.g., zoom 15 = 12px, zoom 18 = 24px)
+  const baseSize = Math.max(6, (zoom - 12) * 4);
+  const finalSize = isFocused ? baseSize * 1.5 : baseSize;
+  const iconHtml = `
+    <svg width="${finalSize}" height="${finalSize}" viewBox="0 0 24 24" fill="none" stroke="${swarmColor}" stroke-width="${isFocused ? '2.5' : '1.5'}" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 ${isFocused ? '4px' : '1px'} ${swarmColor}); transition: all 0.2s;">
+      <circle cx="12" cy="12" r="3" fill="${isFocused ? '#ffffff' : swarmColor}" />
+      <path d="M12 2v6" />
+      <path d="M12 16v6" />
+      <path d="M2 12h6" />
+      <path d="M16 12h6" />
+    </svg>
+  `;
+  const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [finalSize, finalSize], iconAnchor: [finalSize / 2, finalSize / 2] });
+
   return (
     <Marker 
       ref={markerRef}
@@ -121,7 +140,7 @@ function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime }) 
       </Popup>
 
       {/* Persistent HUD Label for focused drone using a high-visibility Marker */}
-      {isFocused && (
+      {(isFocused || isIndependent) && (
         <Marker
           position={[drone.lat, drone.lng]}
           interactive={false}
@@ -220,15 +239,40 @@ export default function OperatorDefault() {
     updateDraftWaypoint,
     tacticalLogs,
     prepareManualReview,
-    updateSwarmName
+    updateSwarmName,
+    moveDroneToSwarm,
+    updateDroneAlt,
+    updateSwarmAlt,
+    globalMapCenter
   } = useMission();
 
+  const [transferDroneId, setTransferDroneId] = useState(null);
   const [isTargeting, setIsTargeting] = useState(false);
   const [autoTrack, setAutoTrack] = useState(true);
   const [mapType, setMapType] = useState('satellite');
   const [editingSwarmId, setEditingSwarmId] = useState(null);
+  const [altitudeDrafts, setAltitudeDrafts] = useState({});
   const [maximizedFeed, setMaximizedFeed] = useState(null);
-  const mapCenter = useMemo(() => [24.7869, 120.9975], []);
+  const mapCenter = useMemo(() => globalMapCenter, [globalMapCenter]);
+
+  const setAltitudeDraft = useCallback((key, value) => {
+    setAltitudeDrafts(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const clearAltitudeDraft = useCallback((key) => {
+    setAltitudeDrafts(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
+
+  const commitAltitudeDraft = useCallback((key, rawValue, fallbackValue, commitFn) => {
+    const parsedValue = Number(rawValue);
+    const finalValue = Number.isFinite(parsedValue) ? parsedValue : fallbackValue;
+    commitFn(finalValue);
+    clearAltitudeDraft(key);
+  }, [clearAltitudeDraft]);
 
   const handleMapClick = useCallback((latlng) => {
     setTargetLock(prev => ({
@@ -263,12 +307,14 @@ export default function OperatorDefault() {
 
   const deckRef = React.useRef(null);
 
-  const activeSwarm = telemetry.swarms?.find(s => s.id === focusDrone?.swarmId) || telemetry.swarms?.[0];
-  const activeDrone = focusDrone ? activeSwarm?.drones?.find(d => d.id === focusDrone.droneId) : null;
+  const activeSwarm = focusDrone?.swarmId ? telemetry.swarms?.find(s => s.id === focusDrone.swarmId) : telemetry.swarms?.[0];
+  const activeDrone = focusDrone ? 
+    (focusDrone.swarmId ? activeSwarm?.drones?.find(d => d.id === focusDrone.droneId) : telemetry.unassignedDrones?.find(d => d.id === focusDrone.droneId)) 
+    : null;
   const displayUnit = activeDrone ? {
     ...activeDrone,
-    speed: activeDrone.waypoints?.length > 0 ? 80 : (activeSwarm?.speed || 0) + (activeDrone.pwr % 2),
-    alt: (activeSwarm?.alt || 0) + (Math.sin(Date.now() / 1000 + activeDrone.pwr) * 5),
+    speed: activeDrone.speed ?? activeSwarm?.speed ?? 0,
+    alt: activeDrone.alt ?? activeSwarm?.alt ?? 0,
     heading: activeDrone.waypoints?.length > 0 ? "LOCK" : (activeSwarm?.heading || 300)
   } : activeSwarm;
 
@@ -312,6 +358,23 @@ export default function OperatorDefault() {
         }
         .minimal-tooltip::before {
           display: none !important;
+        }
+
+        /* Target Tooltip (for target waypoints in 2D) */
+        .target-tooltip {
+          background: rgba(8, 12, 20, 0.85) !important;
+          border: 1px solid var(--orange-primary) !important;
+          color: var(--orange-primary) !important;
+          font-family: monospace !important;
+          font-size: 10px !important;
+          font-weight: bold !important;
+          padding: 4px 8px !important;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.5) !important;
+          border-radius: 4px !important;
+          white-space: nowrap !important;
+        }
+        .target-tooltip::before {
+          border-top-color: var(--orange-primary) !important;
         }
 
         /* Swarm label: tactical box outside circle */
@@ -449,13 +512,33 @@ export default function OperatorDefault() {
                        <button onClick={(e) => { e.stopPropagation(); toggleSwarmExpand(s.id); }} style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '8px', cursor: 'pointer', padding: '2px 4px' }}>{isExpanded ? '[-] COLLAPSE' : '[+] EXPAND'}</button>
                      </div>
                    </div>
-                   <div className="flex-between">
-                     <span className="mono text-muted" style={{ fontSize: '10px' }}>{s.role} / {s.status}</span>
-                     <span className="mono text-main" style={{ fontSize: '10px' }}>ALT: {s.alt.toFixed(0)}m | SPD: {s.speed.toFixed(0)}kph</span>
-                   </div>
+                    <div className="flex-between">
+                      <span className="mono text-muted" style={{ fontSize: '10px' }}>{s.role} / {s.status}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                         <span className="mono text-main" style={{ fontSize: '10px' }}>ALT:</span>
+                            <input 
+                            value={altitudeDrafts[`swarm-${s.id}`] ?? String(Math.round(s.targetAlt ?? s.alt))}
+                            type="number" 
+                            onChange={(e) => setAltitudeDraft(`swarm-${s.id}`, e.target.value)}
+                            onBlur={(e) => commitAltitudeDraft(`swarm-${s.id}`, e.target.value, s.targetAlt ?? s.alt, (value) => updateSwarmAlt(s.id, value))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                commitAltitudeDraft(`swarm-${s.id}`, e.currentTarget.value, s.targetAlt ?? s.alt, (value) => updateSwarmAlt(s.id, value));
+                                e.target.blur();
+                              } else if (e.key === 'Escape') {
+                                clearAltitudeDraft(`swarm-${s.id}`);
+                                e.target.blur();
+                              }
+                            }}
+                            onClick={e => e.stopPropagation()}
+                            style={{ width: '40px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--cyan-primary)', fontSize: '10px', padding: '1px 2px', fontFamily: 'monospace', outline: 'none', textAlign: 'center' }}
+                         />
+                         <span className="mono text-main" style={{ fontSize: '10px' }}>m | SPD: {s.speed.toFixed(0)}kph</span>
+                      </div>
+                    </div>
                    
                    {isExpanded && (
-                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', margin: '12px 0 0 0', borderTop: '1px dashed var(--border-color)', paddingTop: '12px' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '12px 0 0 0', borderTop: '1px dashed var(--border-color)', paddingTop: '12px' }}>
                         {s.drones.map(d => (
                              <div  
                                 key={d.id}
@@ -486,7 +569,50 @@ export default function OperatorDefault() {
                                    </svg>
                                    <span className="mono text-main" style={{ fontSize: '10px' }}>UAV_{d.id}</span>
                                 </div>
-                                <span className="mono text-muted" style={{ fontSize: '9px' }}>{d.pwr.toFixed(0)}%</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} onClick={e => e.stopPropagation()}>
+                                    <span className="mono text-muted" style={{ fontSize: '9px' }}>ALT:</span>
+                                    <input 
+                                      value={altitudeDrafts[`drone-${d.id}`] ?? String(Math.round(d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt))}
+                                      type="number" 
+                                      onChange={(e) => setAltitudeDraft(`drone-${d.id}`, e.target.value)}
+                                      onBlur={(e) => commitAltitudeDraft(`drone-${d.id}`, e.target.value, d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt, (value) => updateDroneAlt(d.id, value))}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          commitAltitudeDraft(`drone-${d.id}`, e.currentTarget.value, d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt, (value) => updateDroneAlt(d.id, value));
+                                          e.target.blur();
+                                        } else if (e.key === 'Escape') {
+                                          clearAltitudeDraft(`drone-${d.id}`);
+                                          e.target.blur();
+                                        }
+                                      }}
+                                      style={{ width: '35px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--orange-primary)', fontSize: '9px', padding: '1px 2px', fontFamily: 'monospace', outline: 'none', textAlign: 'center' }}
+                                    />
+                                    <span className="mono text-muted" style={{ fontSize: '9px' }}>m</span>
+                                  </div>
+                                  <span className="mono text-muted" style={{ fontSize: '9px' }}>{d.pwr.toFixed(0)}%</span>
+                                  <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                                     <button 
+                                       onClick={(e) => { e.stopPropagation(); setTransferDroneId(transferDroneId === d.id ? null : d.id); }}
+                                       style={{ background: 'transparent', border: 'none', color: 'var(--cyan-primary)', cursor: 'pointer', padding: '0 4px', fontSize: '12px' }}
+                                       title="Transfer to Swarm"
+                                     >↹</button>
+                                     {transferDroneId === d.id && (
+                                       <div style={{ position: 'absolute', right: 0, top: '20px', background: '#080c14', border: '1px solid var(--cyan-primary)', zIndex: 100, padding: '4px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          <span className="mono text-muted" style={{ fontSize: '8px', whiteSpace: 'nowrap' }}>JOIN SWARM:</span>
+                                          {telemetry.swarms.filter(sw => sw.id !== s.id).map(sw => (
+                                             <button 
+                                               key={sw.id}
+                                               onClick={(e) => { e.stopPropagation(); moveDroneToSwarm(d.id, s.id, sw.id); setTransferDroneId(null); }}
+                                               style={{ background: 'rgba(0,229,255,0.1)', border: 'none', color: sw.color, cursor: 'pointer', fontSize: '10px', padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}
+                                             >
+                                               S{sw.id} {sw.name ? `(${sw.name})` : ''}
+                                             </button>
+                                          ))}
+                                       </div>
+                                     )}
+                                  </div>
+                                </div>
                              </div>
                         ))}
                      </div>
@@ -494,6 +620,94 @@ export default function OperatorDefault() {
                  </div>
                );
               })}
+
+              {/* INDEPENDENT UNITS SECTION */}
+              {telemetry.unassignedDrones && telemetry.unassignedDrones.length > 0 && (
+                <div className="flex-column" style={{ gap: '8px', padding: '12px', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                   <div className="flex-between" style={{ paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>
+                     <span className="mono" style={{ fontSize: '12px', color: '#fff' }}>INDEPENDENT UNITS</span>
+                     <span className="mono text-muted" style={{ fontSize: '10px' }}>{telemetry.unassignedDrones.length} ACTIVE</span>
+                   </div>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                      {telemetry.unassignedDrones.map(d => (
+                         <div  
+                            key={d.id}
+                            title={`UAV_${d.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setFocusDrone({ swarmId: null, droneId: d.id, forcePopup: null });
+                              setAutoTrack(true);
+                            }}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation();
+                              setFocusDrone({ swarmId: null, droneId: d.id, forcePopup: Date.now() });
+                              setAutoTrack(true);
+                            }}
+                            className="flex-between"
+                            style={{ 
+                              padding: '8px',
+                              border: `1px solid ${focusDrone?.droneId === d.id ? 'var(--cyan-primary)' : 'rgba(255,255,255,0.1)'}`, 
+                              background: focusDrone?.droneId === d.id ? 'rgba(0,229,255,0.1)' : 'transparent', 
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                               {/* Drone Icon */}
+                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={d.pwr > 50 ? "#ffffff" : "var(--orange-alert)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                 <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-1.6-.4-3.2.2-4 1.4-.2.4-.2.9 0 1.3l4.5 4.5L3.8 14.9c-.3.3-.4.8-.2 1.1s.8.3 1.1 0l1.5-1.5 4.5 4.5c.4.3.9.2 1.3 0 1.2-.8 1.8-2.4 1.4-4L16 13l3.5 3.5c1.5 1.5 3.5 2 4.5 1.5.5-1.5 0-3.5-1.5-4.5h0z"/>
+                               </svg>
+                               <span className="mono text-main" style={{ fontSize: '10px' }}>UAV_{d.id}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} onClick={e => e.stopPropagation()}>
+                                <span className="mono text-muted" style={{ fontSize: '9px' }}>ALT:</span>
+                                <input 
+                                  value={altitudeDrafts[`drone-${d.id}`] ?? String(Math.round(d.targetAlt ?? d.alt ?? 120))}
+                                  type="number" 
+                                  onChange={(e) => setAltitudeDraft(`drone-${d.id}`, e.target.value)}
+                                  onBlur={(e) => commitAltitudeDraft(`drone-${d.id}`, e.target.value, d.targetAlt ?? d.alt ?? 120, (value) => updateDroneAlt(d.id, value))}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      commitAltitudeDraft(`drone-${d.id}`, e.currentTarget.value, d.targetAlt ?? d.alt ?? 120, (value) => updateDroneAlt(d.id, value));
+                                      e.target.blur();
+                                    } else if (e.key === 'Escape') {
+                                      clearAltitudeDraft(`drone-${d.id}`);
+                                      e.target.blur();
+                                    }
+                                  }}
+                                  style={{ width: '35px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--orange-primary)', fontSize: '9px', padding: '1px 2px', fontFamily: 'monospace', outline: 'none', textAlign: 'center' }}
+                                />
+                                <span className="mono text-muted" style={{ fontSize: '9px' }}>m</span>
+                              </div>
+                              <span className="mono text-muted" style={{ fontSize: '9px' }}>{d.pwr.toFixed(0)}%</span>
+                              <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                                 <button 
+                                   onClick={(e) => { e.stopPropagation(); setTransferDroneId(transferDroneId === d.id ? null : d.id); }}
+                                   style={{ background: 'transparent', border: 'none', color: 'var(--cyan-primary)', cursor: 'pointer', padding: '0 4px', fontSize: '12px' }}
+                                   title="Assign to Swarm"
+                                 >↹</button>
+                                 {transferDroneId === d.id && (
+                                   <div style={{ position: 'absolute', right: 0, top: '20px', background: '#080c14', border: '1px solid var(--cyan-primary)', zIndex: 100, padding: '4px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                      <span className="mono text-muted" style={{ fontSize: '8px', whiteSpace: 'nowrap' }}>ASSIGN TO SWARM:</span>
+                                      {telemetry.swarms.map(sw => (
+                                         <button 
+                                           key={sw.id}
+                                           onClick={(e) => { e.stopPropagation(); moveDroneToSwarm(d.id, null, sw.id); setTransferDroneId(null); }}
+                                           style={{ background: 'rgba(0,229,255,0.1)', border: 'none', color: sw.color, cursor: 'pointer', fontSize: '10px', padding: '4px 8px', textAlign: 'left', whiteSpace: 'nowrap' }}
+                                         >
+                                           S{sw.id} {sw.name ? `(${sw.name})` : ''}
+                                         </button>
+                                      ))}
+                                   </div>
+                                 )}
+                              </div>
+                            </div>
+                         </div>
+                      ))}
+                   </div>
+                </div>
+              )}
             </div>
          </div>
 
@@ -517,15 +731,74 @@ export default function OperatorDefault() {
                     <button onClick={() => setTargetLock({ waypoints: [], assignedSwarm: null })} className="mono" style={{ background: 'transparent', border: 'none', color: 'var(--orange-alert)', fontSize: '10px', cursor: 'pointer' }}>[RESET]</button>
                  </div>
                  
+                 {/* Waypoint Edit List */}
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {targetLock.waypoints.map((wp, idx) => (
+                      <div key={wp.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.3)', padding: '4px', borderRadius: '4px', border: '1px solid rgba(255,107,0,0.3)' }}>
+                        <span className="mono text-orange" style={{ fontSize: '10px', width: '30px' }}>WP_{idx+1}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '2px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2" title="Latitude">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M2 12h20M4 8h16M4 16h16"/>
+                          </svg>
+                          <input 
+                            type="number" 
+                            step="0.0001"
+                            value={wp.lat} 
+                            onChange={(e) => updateDraftWaypoint(wp.id, { lat: e.target.value === '' ? '' : e.target.value })}
+                            onBlur={(e) => {
+                               const val = parseFloat(e.target.value);
+                               if (!isNaN(val)) updateDraftWaypoint(wp.id, { lat: val.toFixed(4) });
+                            }}
+                            style={{ width: '55px', background: 'transparent', border: 'none', color: '#fff', fontSize: '10px', padding: '0 0 0 4px', fontFamily: 'monospace', outline: 'none' }} 
+                          />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', padding: '2px 4px', borderRadius: '2px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2" title="Longitude">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2v20M8 3a10 10 0 0 0 0 18M16 3a10 10 0 0 1 0 18"/>
+                          </svg>
+                          <input 
+                            type="number" 
+                            step="0.0001"
+                            value={wp.lng} 
+                            onChange={(e) => updateDraftWaypoint(wp.id, { lng: e.target.value === '' ? '' : e.target.value })}
+                            onBlur={(e) => {
+                               const val = parseFloat(e.target.value);
+                               if (!isNaN(val)) updateDraftWaypoint(wp.id, { lng: val.toFixed(4) });
+                            }}
+                            style={{ width: '55px', background: 'transparent', border: 'none', color: '#fff', fontSize: '10px', padding: '0 0 0 4px', fontFamily: 'monospace', outline: 'none' }} 
+                          />
+                        </div>
+                        <button 
+                          onClick={() => setTargetLock(prev => ({ ...prev, waypoints: prev.waypoints.filter(w => w.id !== wp.id) }))}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--orange-alert)', cursor: 'pointer', fontSize: '10px', marginLeft: 'auto' }}
+                          title="Remove Target"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                 </div>
+                 
                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {focusDrone ? (
-                      <button 
-                         onClick={() => prepareManualReview(focusDrone.swarmId, targetLock.waypoints, focusDrone.droneId)}
-                         className="btn-primary" 
-                         style={{ width: '100%', padding: '6px', fontSize: '10px', border: '1px solid var(--orange-primary)', background: 'rgba(255,107,0,0.1)', color: 'var(--orange-primary)', cursor: 'pointer', fontWeight: 'bold' }}
-                      >
-                        REVIEW_D{focusDrone.droneId} (SINGLE)
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                         <button 
+                            onClick={() => prepareManualReview(focusDrone.swarmId, targetLock.waypoints)}
+                            className="btn-primary" 
+                            style={{ flex: '1', padding: '6px', fontSize: '10px', border: '1px solid var(--cyan-primary)', background: 'rgba(0,229,255,0.1)', color: 'var(--cyan-primary)', cursor: 'pointer' }}
+                         >
+                           REVIEW_S{focusDrone.swarmId}
+                         </button>
+                         <button 
+                            onClick={() => prepareManualReview(focusDrone.swarmId, targetLock.waypoints, focusDrone.droneId)}
+                            className="btn-primary" 
+                            style={{ flex: '1', padding: '6px', fontSize: '10px', border: '1px solid var(--orange-primary)', background: 'rgba(255,107,0,0.1)', color: 'var(--orange-primary)', cursor: 'pointer', fontWeight: 'bold' }}
+                         >
+                           REVIEW_D{focusDrone.droneId}
+                         </button>
+                      </div>
                     ) : (
                       telemetry.swarms.map(s => (
                         <button 
@@ -597,7 +870,12 @@ export default function OperatorDefault() {
             />
           ) : (
             <MapContainer center={mapCenter} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
-              <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=en" />
+              <TileLayer 
+                url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=en" 
+                maxZoom={22} 
+                maxNativeZoom={20} 
+                detectRetina={true} 
+              />
               <MapInstanceHook />
               <MapEventsListener setAutoTrack={setAutoTrack} isTargeting={isTargeting} onMapClick={handleMapClick} />
               <MapTracker isTargeting={isTargeting} autoTrack={autoTrack} />
@@ -670,6 +948,22 @@ export default function OperatorDefault() {
                   />
                 ));
               })}
+              
+              {/* Independent Drones */}
+              {telemetry.unassignedDrones?.map(drone => (
+                  <DroneMarker 
+                    key={`drone-marker-indy-${drone.id}`} 
+                    drone={drone} 
+                    swarmColor={"#ffcc00"} 
+                    isIndependent={true}
+                    isFocused={focusDrone?.droneId === drone.id} 
+                    forcePopupTime={focusDrone?.droneId === drone.id ? focusDrone?.forcePopup : null}
+                    onFocus={() => {
+                        setFocusDrone({ swarmId: null, droneId: drone.id, forcePopup: null });
+                        setAutoTrack(true);
+                    }}
+                  />
+              ))}
             </MapContainer>
           )}
 
@@ -734,36 +1028,69 @@ export default function OperatorDefault() {
                <span className="rec-dot"></span>
             </div>
             <div className="video-grid">
-               {telemetry.swarms.flatMap(s => s.drones).slice(0, 6).map((d, idx) => {
-                 // Scenic Drone Footage from stable Vimeo CDN
+               {telemetry.swarms.flatMap(s => s.drones).concat(telemetry.unassignedDrones || []).slice(0, 6).map((d, idx) => {
+                 // Stream highly stable real aerial satellite footage (No Cloudflare/CORS blocking)
+                 // The CSS filters applied below will create distinct optical illusions (EO, IR, NV)
                  const videoUrls = [
-                   "https://player.vimeo.com/external/434045526.sd.mp4?s=c27dbed9a23992f96022c0792120ba01f8d42d62&profile_id=165&oauth2_token_id=57447761",
-                   "https://player.vimeo.com/external/403816433.sd.mp4?s=d0046b081045952136005d5196e838706c9a34a6&profile_id=165&oauth2_token_id=57447761",
-                   "https://player.vimeo.com/external/371501431.sd.mp4?s=8a9f60447192d19e4871d871324220a23e981882&profile_id=165&oauth2_token_id=57447761"
+                   "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4",
+                   "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4",
+                   "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4"
                  ];
                  const videoSrc = videoUrls[idx % videoUrls.length];
                  
                  // Apply tactical filters based on drone ID
                  let filter = "none";
                  let modeLabel = "EO_RECON";
-                 if (idx % 3 === 1) {
-                   filter = "grayscale(1) invert(1) contrast(1.5)";
-                   modeLabel = "IR_THERMAL";
-                 } else if (idx % 3 === 2) {
-                   filter = "sepia(1) hue-rotate(90deg) brightness(1.2) contrast(1.2)";
-                   modeLabel = "NV_NIGHT";
-                 }
+               if (idx % 3 === 1) {
+                  filter = "grayscale(1) invert(1) contrast(1.5)";
+                  modeLabel = "IR_THERMAL";
+                } else if (idx % 3 === 2) {
+                  filter = "sepia(1) hue-rotate(90deg) brightness(1.2) contrast(1.2)";
+                  modeLabel = "NV_NIGHT";
+                }
+                const isFocusedFeed = focusDrone?.droneId === d.id;
 
                  return (
                    <div 
                       key={d.id} 
                       className="video-feed-card" 
-                      onDoubleClick={() => setEnlargedFeed(d)}
-                      style={{ position: 'relative', overflow: 'hidden', background: '#050a10', cursor: 'zoom-in' }}
+                      onClick={() => {
+                        const ownerSwarm = telemetry.swarms.find(s => s.drones.some(dr => dr.id === d.id));
+                        setFocusDrone({ swarmId: ownerSwarm?.id || null, droneId: d.id, forcePopup: null });
+                        setAutoTrack(true);
+                      }}
+                      onDoubleClick={() => setEnlargedFeed({...d, videoSrc, filter})}
+                      style={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        background: isFocusedFeed ? 'rgba(0, 229, 255, 0.12)' : '#050a10',
+                        cursor: 'zoom-in',
+                        border: isFocusedFeed ? '1px solid var(--cyan-primary)' : '1px solid rgba(255,255,255,0.08)',
+                        boxShadow: isFocusedFeed ? '0 0 0 1px rgba(0,229,255,0.35), 0 0 18px rgba(0,229,255,0.22)' : 'none',
+                        transform: isFocusedFeed ? 'scale(1.02)' : 'scale(1)',
+                        transition: 'all 0.2s ease'
+                      }}
                    >
+                      {isFocusedFeed && (
+                        <div style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          zIndex: 4,
+                          padding: '2px 6px',
+                          border: '1px solid var(--cyan-primary)',
+                          background: 'rgba(8, 12, 20, 0.88)',
+                          color: 'var(--cyan-primary)',
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: '9px',
+                          letterSpacing: '0.08em'
+                        }}>
+                          TRACKING
+                        </div>
+                      )}
                       <video 
                         src={videoSrc} 
-                        autoPlay loop muted playsInline 
+                        autoPlay loop muted playsInline
                         style={{ 
                           width: '100%', 
                           height: '100%', 
@@ -826,7 +1153,7 @@ export default function OperatorDefault() {
                     <div className="flex-column" style={{ background: 'rgba(0,0,0,0.6)', padding: '10px', borderLeft: '3px solid var(--cyan-primary)' }}>
                        <span className="mono text-main">LAT: {enlargedFeed.lat.toFixed(6)}</span>
                        <span className="mono text-main">LNG: {enlargedFeed.lng.toFixed(6)}</span>
-                       <span className="mono text-main">ALT: 120m</span>
+                       <span className="mono text-main">ALT: {enlargedFeed.alt?.toFixed(0) || 120}m</span>
                     </div>
                     <div className="flex-column" style={{ alignItems: 'flex-end' }}>
                        <span className="display text-orange" style={{ fontSize: '32px' }}>{enlargedFeed.pwr.toFixed(1)}%</span>
@@ -835,9 +1162,10 @@ export default function OperatorDefault() {
                  </div>
               </div>
               <video 
-                 src="https://vjs.zencdn.net/v/oceans.mp4" 
+                 src={enlargedFeed.videoSrc || "https://labs.mapbox.com/bites/00188/patricia_nasa.mp4"} 
                  autoPlay loop muted playsInline 
                  className="drone-vid-bg"
+                 style={{ filter: enlargedFeed.filter || "none" }}
               />
               <div className="map-scanlines" style={{ opacity: 0.2 }}></div>
               <div className="theater-hud-main">

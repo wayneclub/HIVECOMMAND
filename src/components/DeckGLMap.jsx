@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { ScatterplotLayer, PathLayer, LineLayer, TextLayer } from '@deck.gl/layers';
-import Map, { ScaleControl, useControl } from 'react-map-gl/maplibre';
+import { ScatterplotLayer, PathLayer, LineLayer, TextLayer, PolygonLayer } from '@deck.gl/layers';
+import Map, { ScaleControl, useControl, Marker } from 'react-map-gl/maplibre';
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -8,6 +8,23 @@ function DeckGLOverlay(props) {
   const overlay = useControl(() => new MapboxOverlay(props));
   overlay.setProps(props);
   return null;
+}
+
+function circlePolygon([lng, lat], radiusMeters, altitudeMeters, points = 48) {
+  const earthRadius = 6378137;
+  const latRad = (lat * Math.PI) / 180;
+  const coordinates = [];
+
+  for (let i = 0; i <= points; i += 1) {
+    const angle = (i / points) * Math.PI * 2;
+    const dx = Math.cos(angle) * radiusMeters;
+    const dy = Math.sin(angle) * radiusMeters;
+    const dLat = (dy / earthRadius) * (180 / Math.PI);
+    const dLng = (dx / (earthRadius * Math.cos(latRad))) * (180 / Math.PI);
+    coordinates.push([lng + dLng, lat + dLat, altitudeMeters]);
+  }
+
+  return coordinates;
 }
 
 const MAP_STYLE = {
@@ -41,6 +58,7 @@ const MAP_STYLE = {
 };
 
 const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock, isTargeting, setFocusDrone, focusDrone, setAutoTrack, autoTrack }, ref) => {
+  const mapRef = React.useRef(null);
   const [viewState, setViewState] = useState({
     longitude: mapCenter[1],
     latitude: mapCenter[0],
@@ -99,6 +117,19 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     return [parseInt(c.substr(0,2), 16) || 0, parseInt(c.substr(2,2), 16) || 229, parseInt(c.substr(4,2), 16) || 255];
   };
 
+  const getTerrainElevation = (lng, lat) => {
+    const terrainMap = mapRef.current?.getMap?.() || mapRef.current;
+    if (!terrainMap?.queryTerrainElevation) return 0;
+
+    const sampledElevation = terrainMap.queryTerrainElevation({ lng, lat }, { exaggerated: true });
+    return Number.isFinite(sampledElevation) ? sampledElevation : 0;
+  };
+
+  const toAglPosition = (lng, lat, altitude = 0, clearance = 0) => {
+    const terrainAltitude = getTerrainElevation(lng, lat);
+    return [lng, lat, terrainAltitude + altitude + clearance];
+  };
+
   const focusedSwarmId = focusDrone?.swarmId;
 
   const swarmPoints = telemetry.swarms.map(s => {
@@ -110,44 +141,84 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const lineAlpha = hasFocus ? (isFocused ? 255 : 120) : 180;
     
     return { 
-      position: [s.baseLng, s.baseLat, 240], // Float at command altitude
+      position: toAglPosition(s.baseLng, s.baseLat, s.alt || 120, 2),
       color: [...rgb, fillAlpha], 
       lineColor: [...rgb, lineAlpha],
-      radius: isFocused ? 120 : 100, // Pulse/Enlarge focused swarm
+      radius: isFocused ? 18 : 14,
       id: s.id
     };
   });
 
-  const dronePoints = telemetry.swarms.flatMap(s => s.drones.map(d => {
-    const isFocused = focusDrone?.droneId === d.id;
-    const isSwarmFocused = focusedSwarmId === s.id;
-    const hasFocus = !!focusedSwarmId;
-    // Increase visibility for unselected drones
-    const alpha = hasFocus ? (isSwarmFocused ? (isFocused ? 255 : 200) : 120) : 255;
-    
-    // Elevate drones to 250m+ to ensure they clear the terrain
-    const droneAlt = 250 + ((d.id.charCodeAt(0) + d.id.charCodeAt(d.id.length-1)) % 40);
+  const swarmZones = telemetry.swarms.map(s => {
     const rgb = hexToRgb(s.color);
-    
+    const isFocused = focusedSwarmId === s.id;
+    const hasFocus = !!focusedSwarmId;
+    const altitude = s.alt || 120;
+    const outerRadius = isFocused ? 120 : 100;
+    const innerRadius = outerRadius * 0.4;
+    const fillAlpha = hasFocus ? (isFocused ? 36 : 12) : 20;
+    const lineAlpha = hasFocus ? (isFocused ? 255 : 120) : 180;
+    const renderAltitude = getTerrainElevation(s.baseLng, s.baseLat) + altitude + 1;
+
     return {
-      position: [d.lng, d.lat, droneAlt],
-      color: [...rgb, alpha], 
-      radius: isFocused ? 12 : 6,
-      id: d.id,
-      swarmId: s.id
+      id: s.id,
+      altitude,
+      fillColor: [...rgb, fillAlpha],
+      lineColor: [...rgb, lineAlpha],
+      outerPolygon: circlePolygon([s.baseLng, s.baseLat], outerRadius, renderAltitude),
+      innerPolygon: circlePolygon([s.baseLng, s.baseLat], innerRadius, renderAltitude)
     };
-  }));
+  });
+
+  const dronePoints = [
+    ...telemetry.swarms.flatMap(s => s.drones.map(d => {
+      const isFocused = focusDrone?.droneId === d.id;
+      const isSwarmFocused = focusedSwarmId === s.id;
+      const hasFocus = !!focusedSwarmId;
+      // Increase visibility for unselected drones
+      const alpha = hasFocus ? (isSwarmFocused ? (isFocused ? 255 : 200) : 120) : 255;
+      
+      // Elevate drones to 250m+ to ensure they clear the terrain
+      const droneAlt = d.alt || 250;
+      const rgb = hexToRgb(s.color);
+      
+      return {
+        position: toAglPosition(d.lng, d.lat, droneAlt, 2),
+        color: [...rgb, alpha], 
+        radius: isFocused ? 12 : 6,
+        id: d.id,
+        swarmId: s.id
+      };
+    })),
+    ...(telemetry.unassignedDrones || []).map(d => {
+      const isFocused = focusDrone?.droneId === d.id;
+      const hasFocus = !!focusDrone;
+      const alpha = hasFocus ? (isFocused ? 255 : 120) : 255;
+      
+      const droneAlt = d.alt || 250;
+      return {
+        position: toAglPosition(d.lng, d.lat, droneAlt, 2),
+        color: [255, 204, 0, alpha], // Amber/Yellow for unassigned
+        radius: isFocused ? 12 : 6,
+        id: d.id,
+        swarmId: null
+      };
+    })
+  ];
 
   const droneLines = dronePoints.map(d => ({
     sourcePosition: [d.position[0], d.position[1], d.position[2]],
-    targetPosition: [d.position[0], d.position[1], 0], // Drop line to ground
+    targetPosition: toAglPosition(d.position[0], d.position[1], 0, 0), // Drop line to local terrain
     color: d.color
   }));
 
-  const targetPoints = targetLock?.waypoints?.map(wp => ({
-    position: [wp.lng, wp.lat, 240],
-    color: [255, 107, 0, 200],
-    radius: 30
+  const targetPoints = targetLock?.waypoints?.map((wp, index) => ({
+    position: toAglPosition(wp.lng, wp.lat, 240, 0), // Hover altitude for the pin head
+    groundPosition: toAglPosition(wp.lng, wp.lat, 0, 0), // Ground level
+    color: [255, 107, 0, 255],
+    fillColor: [255, 107, 0, 150],
+    radius: 30,
+    index: index + 1
   })) || [];
 
   const paths = telemetry.swarms.filter(s => s.waypoints?.length > 0).map(s => {
@@ -155,13 +226,58 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const isFocused = focusedSwarmId === s.id;
     const hasFocus = !!focusedSwarmId;
     const alpha = hasFocus ? (isFocused ? 200 : 80) : 150;
+    const altitude = s.alt || 120;
     return {
-      path: [[s.baseLng, s.baseLat, 240], ...s.waypoints.map(w => [w.lng, w.lat, 240])],
+      path: [
+        toAglPosition(s.baseLng, s.baseLat, altitude, 1),
+        ...s.waypoints.map(w => toAglPosition(w.lng, w.lat, altitude, 1))
+      ],
       color: [...rgb, alpha]
     };
   });
 
   const layers = [
+    new PolygonLayer({
+      id: 'swarm-zones-fill',
+      data: swarmZones,
+      pickable: false,
+      stroked: false,
+      filled: true,
+      extruded: false,
+      getPolygon: d => d.outerPolygon,
+      getFillColor: d => d.fillColor,
+      parameters: { depthWriteEnabled: false },
+      updateTriggers: {
+        getPolygon: [telemetry.swarms],
+        getFillColor: [focusedSwarmId]
+      }
+    }),
+    new PathLayer({
+      id: 'swarm-zones-outer-ring',
+      data: swarmZones,
+      getPath: d => d.outerPolygon,
+      getColor: d => d.lineColor,
+      getWidth: 2,
+      widthMinPixels: 2,
+      parameters: { depthWriteEnabled: false },
+      updateTriggers: {
+        getPath: [telemetry.swarms],
+        getColor: [focusedSwarmId]
+      }
+    }),
+    new PathLayer({
+      id: 'swarm-zones-inner-ring',
+      data: swarmZones,
+      getPath: d => d.innerPolygon,
+      getColor: d => d.lineColor,
+      getWidth: 2,
+      widthMinPixels: 2,
+      parameters: { depthWriteEnabled: false },
+      updateTriggers: {
+        getPath: [telemetry.swarms],
+        getColor: [focusedSwarmId]
+      }
+    }),
     new PathLayer({
       id: 'swarm-paths',
       data: paths,
@@ -172,7 +288,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       parameters: { depthWriteEnabled: false }
     }),
     new ScatterplotLayer({
-      id: 'swarms-radar-outer',
+      id: 'swarm-centers',
       data: swarmPoints,
       stroked: true,
       filled: true,
@@ -183,23 +299,10 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       getRadius: d => d.radius,
       parameters: { depthWriteEnabled: false },
       updateTriggers: {
+        getPosition: [telemetry.swarms],
         getFillColor: [focusedSwarmId],
         getLineColor: [focusedSwarmId],
         getRadius: [focusedSwarmId]
-      }
-    }),
-    new ScatterplotLayer({
-      id: 'swarms-radar-inner',
-      data: swarmPoints,
-      stroked: true,
-      filled: false,
-      lineWidthMinPixels: 2,
-      getPosition: d => d.position,
-      getLineColor: d => d.lineColor,
-      getRadius: d => d.radius * 0.4,
-      parameters: { depthWriteEnabled: false },
-      updateTriggers: {
-        getLineColor: [focusedSwarmId]
       }
     }),
     new LineLayer({
@@ -258,19 +361,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         getSize: [focusDrone]
       }
     }),
-    new TextLayer({
-      id: 'targets-geom',
-      data: targetPoints,
-      getPosition: d => d.position,
-      getText: d => '×',
-      getColor: d => d.color,
-      getSize: 32,
-      fontFamily: 'Arial',
-      characterSet: ['×'],
-      getTextAnchor: 'middle',
-      getAlignmentBaseline: 'center',
-      parameters: { depthWriteEnabled: false }
-    }),
+    // Target layers removed in favor of HTML Marker rendering
     new TextLayer({
       id: 'swarm-labels-minimal',
       data: telemetry.swarms.filter(s => s.drones?.length > 0).map(s => {
@@ -280,7 +371,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         const dynamicSouthOffset = 0.0011 + (Math.sin(pitchRad) * 0.0012); 
         
         return {
-          position: [s.baseLng - 0.0002, s.baseLat - dynamicSouthOffset, 300],
+          position: toAglPosition(s.baseLng - 0.0002, s.baseLat - dynamicSouthOffset, (s.alt || 120) + 30, 0),
           text: s.name || 'SWARM_' + s.id,
           color: rgb
         };
@@ -300,7 +391,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       backgroundPadding: [4, 8],
       parameters: { depthWriteEnabled: false },
       updateTriggers: {
-        data: [viewState.pitch]
+        data: [viewState.pitch, telemetry.swarms]
       }
     }),
     new TextLayer({
@@ -339,12 +430,12 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       id: 'targets-labels-minimal',
       data: targetPoints,
       getPosition: d => d.position,
-      getText: (d, {index}) => `PRIORITY_TGT_${index+1}`,
+      getText: d => `PRIORITY_TGT_${d.index}`,
       getColor: [0, 0, 0, 255],
       getSize: 10,
       fontFamily: 'Arial',
       fontWeight: 'bold',
-      pixelOffset: [0, -30],
+      pixelOffset: [0, -35], // Shift slightly above the pin head
       background: true,
       getBackgroundColor: [255, 107, 0, 255],
       getBorderColor: [255, 107, 0, 255],
@@ -353,9 +444,6 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       parameters: { depthWriteEnabled: false }
     })
   ];
-
-  // MapLibre map controller zoom in/out fix
-  const mapRef = React.useRef(null);
 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -387,6 +475,58 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         }}
       >
         <DeckGLOverlay layers={layers} interleaved={true} />
+        
+        {/* Draggable HTML Labels and Icons for Targets */}
+        {targetLock?.waypoints?.map((wp, idx) => (
+          <Marker
+            key={wp.id}
+            longitude={wp.lng}
+            latitude={wp.lat}
+            draggable={true}
+            anchor="center"
+            onDragStart={() => { if (setAutoTrack) setAutoTrack(false); }}
+            onDrag={(e) => {
+              if (setTargetLock) {
+                setTargetLock(prev => ({
+                   ...prev,
+                   waypoints: prev.waypoints.map(w => w.id === wp.id ? { ...w, lat: e.lngLat.lat, lng: e.lngLat.lng } : w)
+                }));
+              }
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'grab', pointerEvents: 'auto' }}>
+               <div style={{
+                 background: 'rgba(8, 12, 20, 0.85)',
+                 border: '1px solid var(--orange-primary)',
+                 color: 'var(--orange-primary)',
+                 padding: '4px 8px',
+                 borderRadius: '4px',
+                 fontFamily: 'monospace',
+                 fontSize: '10px',
+                 fontWeight: 'bold',
+                 userSelect: 'none',
+                 whiteSpace: 'nowrap',
+                 boxShadow: '0 4px 6px rgba(0,0,0,0.5)',
+                 marginBottom: '6px'
+               }}>
+                 WP_{idx+1}: {Number(wp.lat || 0).toFixed(4)}, {Number(wp.lng || 0).toFixed(4)}
+               </div>
+               {/* Simple Target Icon */}
+               <div style={{
+                 width: '24px', height: '24px',
+                 border: '2px solid var(--orange-primary)',
+                 background: 'rgba(255, 107, 0, 0.6)',
+                 borderRadius: '50%',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 boxShadow: '0 0 15px var(--orange-primary)'
+               }}>
+                  <span style={{ fontSize: '10px', color: '#fff', fontWeight: 'bold' }}>{idx + 1}</span>
+               </div>
+            </div>
+          </Marker>
+        ))}
         
         {/* Scale indicator at bottom left */}
         <ScaleControl 

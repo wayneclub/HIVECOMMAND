@@ -298,7 +298,11 @@ body {
 .video-noise {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: url('https://grainy-gradients.vercel.app/noise.svg');
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.08) 0.6px, transparent 0.6px),
+    radial-gradient(rgba(255, 255, 255, 0.05) 0.5px, transparent 0.5px);
+  background-position: 0 0, 12px 12px;
+  background-size: 24px 24px, 18px 18px;
   opacity: 0.05;
   pointer-events: none;
   z-index: 1;
@@ -409,4 +413,3 @@ body {
   object-fit: cover;
   opacity: 0.8;
 }
-

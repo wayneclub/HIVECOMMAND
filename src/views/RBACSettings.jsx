@@ -2,7 +2,7 @@ import React from 'react';
 import { useMission } from '../context/MissionContext';
 
 export default function RBACSettings() {
-  const { setRole, setActiveScreen } = useMission();
+  const { setRole, setActiveScreen, LOCATIONS, globalMapCenter, changeGlobalLocation } = useMission();
 
   const handleRoleChange = (roleName) => {
     if (roleName === 'BRIGADE COMMANDER') {
@@ -83,6 +83,30 @@ export default function RBACSettings() {
             <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                <span className="mono" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', padding: '4px 8px', fontSize: '10px' }}>INDY_LEAD <span className="text-muted" style={{ marginLeft: '8px' }}>x</span></span>
                <span className="mono" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', padding: '4px 8px', fontSize: '10px' }}>COMMAND_01 <span className="text-muted" style={{ marginLeft: '8px' }}>x</span></span>
+            </div>
+         </div>
+
+         <div style={{ marginTop: '32px' }}>
+            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>THEATER LOCATION CONFIGURATION</h4>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+               {Object.keys(LOCATIONS || {}).map(locKey => (
+                 <button 
+                   key={locKey}
+                   onClick={() => changeGlobalLocation(locKey)}
+                   style={{
+                     background: 'var(--bg-dark)', 
+                     border: '1px solid ' + (globalMapCenter[0] === LOCATIONS[locKey].lat ? 'var(--cyan-primary)' : 'var(--border-color)'), 
+                     color: globalMapCenter[0] === LOCATIONS[locKey].lat ? 'var(--cyan-primary)' : 'var(--text-muted)',
+                     padding: '8px 16px', 
+                     cursor: 'pointer',
+                     fontFamily: 'monospace',
+                     fontSize: '10px',
+                     textTransform: 'uppercase'
+                   }}
+                 >
+                   {locKey}
+                 </button>
+               ))}
             </div>
          </div>
 
