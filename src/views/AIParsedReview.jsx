@@ -76,7 +76,12 @@ export default function AIParsedReview() {
     addWaypointToSwarm,
     addWaypointToDrone,
     addMissionToHistory,
-    clearSwarmWaypoints
+    clearSwarmWaypoints,
+    formatDistance,
+    formatSpeed,
+    formatVisibility,
+    formatTemperature,
+    formatWind
   } = useMission();
 
   if (!lastAIParsedCommand) {
@@ -116,19 +121,25 @@ export default function AIParsedReview() {
   };
 
   const isAbort = lastAIParsedCommand.intent === 'ABORT_MOTION';
-  const swarm = telemetry.swarms.find((s) => s.id === lastAIParsedCommand.swarmId);
+  const swarm = lastAIParsedCommand.swarmId ? telemetry.swarms.find((s) => s.id === lastAIParsedCommand.swarmId) : null;
+  const drone = lastAIParsedCommand.swarmId 
+    ? swarm?.drones?.find(d => d.id === lastAIParsedCommand.targetDroneId) 
+    : (telemetry.unassignedDrones || []).find(d => d.id === lastAIParsedCommand.targetDroneId);
   const pathWaypoints = lastAIParsedCommand.waypoints || [];
 
-  const fallbackCenter = [swarm?.baseLat || 34.0224, swarm?.baseLng || -118.2851];
+  const assetColor = swarm ? swarm.color : '#ffcc00'; // Amber for unassigned drones
+  const fallbackCenter = [swarm?.baseLat || drone?.lat || 34.0224, swarm?.baseLng || drone?.lng || -118.2851];
+  const originPosition = swarm ? [swarm.baseLat, swarm.baseLng] : drone ? [drone.lat, drone.lng] : null;
+
   const mapPositions = useMemo(() => {
-    const origin = swarm ? [[swarm.baseLat, swarm.baseLng]] : [];
+    const origin = originPosition ? [originPosition] : [];
     const routePoints = pathWaypoints.map((wp) => [wp.lat, wp.lng]);
     if (routePoints.length > 0) return [...origin, ...routePoints];
     if (!isAbort && lastAIParsedCommand.destination) {
       return [...origin, [lastAIParsedCommand.destination.lat, lastAIParsedCommand.destination.lng]];
     }
     return origin;
-  }, [swarm, pathWaypoints, isAbort, lastAIParsedCommand.destination]);
+  }, [originPosition, pathWaypoints, isAbort, lastAIParsedCommand.destination]);
 
   const manifestRows = (lastAIParsedCommand.waypoints || [
     {
@@ -147,6 +158,9 @@ export default function AIParsedReview() {
   const assignedAssetLabel = lastAIParsedCommand.targetDroneId
     ? `UAV_${lastAIParsedCommand.targetDroneId}`
     : `SWARM_${lastAIParsedCommand.swarmId}`;
+  const totalDistanceMeters = Number.isFinite(Number(lastAIParsedCommand.distanceMeters))
+    ? Number(lastAIParsedCommand.distanceMeters)
+    : Number(lastAIParsedCommand.distance || 0) * 1000;
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}>
@@ -155,48 +169,50 @@ export default function AIParsedReview() {
           <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=en" />
           <FitMissionBounds positions={mapPositions} />
 
-          {swarm && (
+          {(swarm || drone) && (
             <>
               {mapPositions.length > 1 && (
                 <>
                   <Polyline
                     positions={mapPositions}
-                    pathOptions={{ color: swarm.color, weight: 10, opacity: 0.16, lineCap: 'round', lineJoin: 'round' }}
+                    pathOptions={{ color: assetColor, weight: 10, opacity: 0.16, lineCap: 'round', lineJoin: 'round' }}
                   />
                   <Polyline
                     positions={mapPositions}
-                    pathOptions={{ color: swarm.color, weight: 3, dashArray: '10 12', opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
+                    pathOptions={{ color: assetColor, weight: 3, dashArray: '10 12', opacity: 0.95, lineCap: 'round', lineJoin: 'round' }}
                   />
                 </>
               )}
 
-              <Marker
-                position={[swarm.baseLat, swarm.baseLng]}
-                icon={new L.DivIcon({
-                  className: '',
-                  html: `
-                    <div style="display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;
-                      background:${swarm.color};box-shadow:0 0 0 4px ${swarm.color}22,0 0 14px ${swarm.color};"></div>
-                  `,
-                  iconSize: [18, 18],
-                  iconAnchor: [9, 9]
-                })}
-              >
-                <Tooltip permanent direction="top" offset={[0, -18]} opacity={1} className="review-tooltip">
-                  <span className="mono" style={{ fontSize: '10px' }}>ORIGIN // {assignedAssetLabel}</span>
-                </Tooltip>
-              </Marker>
+              {originPosition && (
+                <Marker
+                  position={originPosition}
+                  icon={new L.DivIcon({
+                    className: '',
+                    html: `
+                      <div style="display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:999px;
+                        background:${assetColor};box-shadow:0 0 0 4px ${assetColor}22,0 0 14px ${assetColor};"></div>
+                    `,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                  })}
+                >
+                  <Tooltip permanent direction="top" offset={[0, -18]} opacity={1} className="review-tooltip">
+                    <span className="mono" style={{ fontSize: '10px' }}>ORIGIN // {assignedAssetLabel}</span>
+                  </Tooltip>
+                </Marker>
+              )}
 
               {manifestRows.map((wp, idx) => {
                 const direction = idx % 2 === 0 ? 'top' : 'right';
                 const offset = direction === 'top' ? [0, -18] : [22, 0];
 
                 return (
-                  <Marker key={wp.id || `${wp.label}-${idx}`} position={[wp.lat, wp.lng]} icon={reviewWaypointIcon(idx, swarm.color)}>
+                  <Marker key={wp.id || `${wp.label}-${idx}`} position={[wp.lat, wp.lng]} icon={reviewWaypointIcon(idx, assetColor)}>
                     <Tooltip permanent direction={direction} offset={offset} opacity={1} className="review-tooltip">
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: '132px' }}>
                         <span className="mono" style={{ fontSize: '10px', color: '#fff' }}>{wp.label}</span>
-                        <span className="mono" style={{ fontSize: '9px', color: 'var(--cyan-primary)' }}>{wp.distance} KM</span>
+                        <span className="mono" style={{ fontSize: '9px', color: 'var(--cyan-primary)' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
                         <span className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)' }}>ETA {wp.eta}</span>
                       </div>
                     </Tooltip>
@@ -254,7 +270,7 @@ export default function AIParsedReview() {
                   </div>
                   <span className="mono text-main" style={{ fontSize: '10px' }}>{wp.label}</span>
                 </div>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{wp.distance} KM</span>
+                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
                 <span className="mono text-cyan" style={{ fontSize: '10px', textAlign: 'right', fontWeight: 'bold' }}>{wp.eta}</span>
               </div>
             ))}
@@ -270,9 +286,9 @@ export default function AIParsedReview() {
               <span className="mono text-muted" style={{ fontSize: '10px' }}>ASSET</span>
               <span className="mono text-main" style={{ fontSize: '11px' }}>{assignedAssetLabel}</span>
               <span className="mono text-muted" style={{ fontSize: '10px' }}>TOTAL_DIST</span>
-              <span className="mono text-cyan" style={{ fontSize: '11px' }}>{lastAIParsedCommand.distance} KM</span>
+              <span className="mono text-cyan" style={{ fontSize: '11px' }}>{formatDistance(totalDistanceMeters)}</span>
               <span className="mono text-muted" style={{ fontSize: '10px' }}>AVG_GS</span>
-              <span className="mono text-main" style={{ fontSize: '11px' }}>{lastAIParsedCommand.predictedGS} KPH</span>
+              <span className="mono text-main" style={{ fontSize: '11px' }}>{formatSpeed(lastAIParsedCommand.predictedGS)}</span>
             </div>
 
             <div style={{ paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
@@ -288,11 +304,11 @@ export default function AIParsedReview() {
             <span className="mono text-muted" style={{ fontSize: '10px' }}>CONDITION</span>
             <span className="mono text-main" style={{ fontSize: '10px' }}>{lastAIParsedCommand.missionWeather.condition}</span>
             <span className="mono text-muted" style={{ fontSize: '10px' }}>WIND</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{lastAIParsedCommand.missionWeather.wind}</span>
+            <span className="mono text-main" style={{ fontSize: '10px' }}>{formatWind(lastAIParsedCommand.missionWeather)}</span>
             <span className="mono text-muted" style={{ fontSize: '10px' }}>VISIBILITY</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{lastAIParsedCommand.missionWeather.vis}</span>
+            <span className="mono text-main" style={{ fontSize: '10px' }}>{formatVisibility(lastAIParsedCommand.missionWeather.visibilityKm ?? Number(String(lastAIParsedCommand.missionWeather.vis || '0').replace(/[^\d.]/g, '')))}</span>
             <span className="mono text-muted" style={{ fontSize: '10px' }}>TEMP</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{lastAIParsedCommand.missionWeather.temp}</span>
+            <span className="mono text-main" style={{ fontSize: '10px' }}>{formatTemperature(lastAIParsedCommand.missionWeather.tempC ?? Number(String(lastAIParsedCommand.missionWeather.temp || '0').replace(/[^\d.]/g, '')))}</span>
           </div>
         </div>
       </div>

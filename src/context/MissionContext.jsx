@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useRef, useEffect } from 'r
 
 const MissionContext = createContext();
 const EARTH_RADIUS_M = 6371000;
+const FEET_PER_METER = 3.28084;
+const MILES_PER_KM = 0.621371;
+const MPH_PER_KPH = 0.621371;
+const KPH_PER_KNOT = 1.852;
 const SWARM_CRUISE_MPS = 16;
 const DRONE_CRUISE_MPS = 18;
 const FORMATION_FOLLOW_MPS = 7;
@@ -18,6 +22,28 @@ const formatSystemTime = (date = new Date()) =>
     hour12: false
   });
 const clampAltitude = (alt) => Math.max(0, Math.min(1200, Number.isFinite(alt) ? alt : 120));
+const roundTo = (value, decimals = 0) => {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+};
+const parseWindString = (windValue) => {
+  if (!windValue || typeof windValue !== 'string') return null;
+  const match = windValue.match(/([\d.]+)\s*(KTS|KPH|MPH)\s*([A-Z]+)/i);
+  if (!match) return null;
+  return {
+    speed: Number(match[1]),
+    unit: match[2].toUpperCase(),
+    direction: match[3].toUpperCase()
+  };
+};
+const makeMissionWeather = ({ speedKts, direction = 'NE', visibilityKm = 10, tempC = 24, humidity = '60%', condition = 'STABLE' }) => ({
+  condition,
+  windSpeedKts: speedKts,
+  windDirection: direction,
+  visibilityKm,
+  tempC,
+  humidity
+});
 const easeAltitude = (currentAlt, targetAlt, deltaSeconds, climbRateMps = SWARM_CLIMB_MPS, descentRateMps = SWARM_DESCENT_MPS) => {
   const current = Number.isFinite(currentAlt) ? currentAlt : 0;
   const target = clampAltitude(targetAlt);
@@ -89,6 +115,7 @@ export function MissionProvider({ children }) {
 
   // AI Command State
   const [lastAIParsedCommand, setLastAIParsedCommand] = useState(null);
+  const [unitSystem, setUnitSystem] = useState('metric');
 
   const [tacticalLogs, setTacticalLogs] = useState([
     { timestamp: formatSystemTime(), message: "SYSTEM_ONLINE // ENCRYPTED_LINK_ESTABLISHED", type: "SYSTEM", coords: null },
@@ -116,6 +143,79 @@ export function MissionProvider({ children }) {
   };
 
   const [globalMapCenter, setGlobalMapCenter] = useState([LOCATIONS["station (USC)"].lat, LOCATIONS["station (USC)"].lng]);
+  const isImperial = unitSystem === 'imperial';
+
+  const formatAltitude = (meters, { decimals = 0, includeUnit = true } = {}) => {
+    const safeMeters = Number.isFinite(Number(meters)) ? Number(meters) : 0;
+    const value = isImperial ? safeMeters * FEET_PER_METER : safeMeters;
+    const rounded = roundTo(value, decimals);
+    return includeUnit ? `${rounded}${isImperial ? 'FT' : 'M'}` : String(rounded);
+  };
+
+  const formatDistance = (meters, { decimals = 2, includeUnit = true } = {}) => {
+    const safeMeters = Number.isFinite(Number(meters)) ? Number(meters) : 0;
+    const value = isImperial ? (safeMeters / 1000) * MILES_PER_KM : safeMeters / 1000;
+    const rounded = roundTo(value, decimals);
+    return includeUnit ? `${rounded} ${isImperial ? 'MI' : 'KM'}` : String(rounded);
+  };
+
+  const formatSpeed = (kph, { decimals = 0, includeUnit = true } = {}) => {
+    const safeKph = Number.isFinite(Number(kph)) ? Number(kph) : 0;
+    const value = isImperial ? safeKph * MPH_PER_KPH : safeKph;
+    const rounded = roundTo(value, decimals);
+    return includeUnit ? `${rounded} ${isImperial ? 'MPH' : 'KPH'}` : String(rounded);
+  };
+
+  const formatTemperature = (celsius, { decimals = 0, includeUnit = true } = {}) => {
+    const safeC = Number.isFinite(Number(celsius)) ? Number(celsius) : 0;
+    const value = isImperial ? (safeC * 9) / 5 + 32 : safeC;
+    const rounded = roundTo(value, decimals);
+    return includeUnit ? `${rounded}°${isImperial ? 'F' : 'C'}` : String(rounded);
+  };
+
+  const formatVisibility = (km, { decimals = 1, includeUnit = true } = {}) => {
+    const safeKm = Number.isFinite(Number(km)) ? Number(km) : 0;
+    const value = isImperial ? safeKm * MILES_PER_KM : safeKm;
+    const rounded = roundTo(value, decimals);
+    return includeUnit ? `${rounded} ${isImperial ? 'MI' : 'KM'}` : String(rounded);
+  };
+
+  const formatWind = (windData) => {
+    let speedKts = null;
+    let direction = 'NW';
+
+    if (windData && typeof windData === 'object') {
+      if (Number.isFinite(Number(windData.windSpeedKts))) {
+        speedKts = Number(windData.windSpeedKts);
+      } else if (Number.isFinite(Number(windData.speedKts))) {
+        speedKts = Number(windData.speedKts);
+      }
+      direction = windData.windDirection || windData.direction || direction;
+    } else {
+      const parsed = parseWindString(windData);
+      if (parsed) {
+        direction = parsed.direction;
+        if (parsed.unit === 'KTS') speedKts = parsed.speed;
+        if (parsed.unit === 'KPH') speedKts = parsed.speed / KPH_PER_KNOT;
+        if (parsed.unit === 'MPH') speedKts = (parsed.speed / MPH_PER_KPH) / KPH_PER_KNOT;
+      }
+    }
+
+    const finalSpeedKts = Number.isFinite(speedKts) ? speedKts : 12 / KPH_PER_KNOT;
+    const speedValue = isImperial ? finalSpeedKts * KPH_PER_KNOT * MPH_PER_KPH : finalSpeedKts * KPH_PER_KNOT;
+    return `${roundTo(speedValue, 0)} ${isImperial ? 'MPH' : 'KPH'} ${direction}`;
+  };
+
+  const altitudeToDisplayValue = (meters, decimals = 0) => {
+    const safeMeters = Number.isFinite(Number(meters)) ? Number(meters) : 0;
+    return String(roundTo(isImperial ? safeMeters * FEET_PER_METER : safeMeters, decimals));
+  };
+
+  const altitudeInputToMeters = (displayValue) => {
+    const parsedValue = Number(displayValue);
+    if (!Number.isFinite(parsedValue)) return Number.NaN;
+    return isImperial ? parsedValue / FEET_PER_METER : parsedValue;
+  };
 
   const changeGlobalLocation = (locationKey) => {
     const loc = LOCATIONS[locationKey];
@@ -226,17 +326,33 @@ export function MissionProvider({ children }) {
 
   const addWaypointToDrone = (swarmId, droneId, latlngs) => {
     const newPoints = Array.isArray(latlngs) ? latlngs : [latlngs];
-    setTelemetry(prev => ({
-      ...prev,
-      swarms: prev.swarms.map(s => {
-        if (s.id === swarmId) {
-          const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
-          const newDrones = s.drones.map(d => d.id === droneId ? { ...d, waypoints: [...(d.waypoints || []), ...formatted] } : d);
-          return { ...s, drones: newDrones };
-        }
-        return s;
-      })
-    }));
+    setTelemetry(prev => {
+      if (swarmId) {
+        return {
+          ...prev,
+          swarms: prev.swarms.map(s => {
+            if (s.id === swarmId) {
+              const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
+              const newDrones = s.drones.map(d => d.id === droneId ? { ...d, waypoints: [...(d.waypoints || []), ...formatted] } : d);
+              return { ...s, drones: newDrones };
+            }
+            return s;
+          })
+        };
+      } else {
+        // Independent drone
+        return {
+          ...prev,
+          unassignedDrones: (prev.unassignedDrones || []).map(d => {
+            if (d.id === droneId) {
+              const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
+              return { ...d, waypoints: [...(d.waypoints || []), ...formatted] };
+            }
+            return d;
+          })
+        };
+      }
+    });
     addLog(`Assigned ${newPoints.length} independent waypoints to UAV_${droneId}`, "MISSION");
   };
   
@@ -338,10 +454,9 @@ export function MissionProvider({ children }) {
 
           if (newWaypoints.length > 0) {
             const target = newWaypoints[0];
-            const windMatch = lastAIParsedCommand && lastAIParsedCommand.swarmId === s.id && lastAIParsedCommand.missionWeather
-              ? lastAIParsedCommand.missionWeather.wind?.match(/(\d+)/)
-              : null;
-            const windKts = windMatch ? Number(windMatch[1]) : 0;
+            const windKts = lastAIParsedCommand && lastAIParsedCommand.swarmId === s.id && lastAIParsedCommand.missionWeather
+              ? Number(lastAIParsedCommand.missionWeather.windSpeedKts ?? 0)
+              : 0;
             const windPenaltyMps = Math.min(3, windKts * 0.257);
             const cruiseMps = Math.max(8, SWARM_CRUISE_MPS - windPenaltyMps);
             const movement = moveTowardCoordinates(
@@ -461,46 +576,110 @@ export function MissionProvider({ children }) {
             drones: newDrones
           };
         }),
-        unassignedDrones: (prev.unassignedDrones || []).map(d => ({
-          ...d,
-          alt: easeAltitude(
-            d.alt,
-            d.targetAlt ?? d.alt,
-            deltaSeconds,
-            DRONE_CLIMB_MPS,
-            DRONE_DESCENT_MPS
-          ),
-          targetAlt: d.targetAlt ?? d.alt,
-          speed: d.speed ?? 0,
-          pwr: Math.max(0, d.pwr - (Math.random() * 0.004))
-        }))
+        unassignedDrones: (prev.unassignedDrones || []).map(d => {
+          const droneTargetAlt = d.targetAlt ?? d.alt;
+          
+          if (d.waypoints && d.waypoints.length > 0) {
+            const target = d.waypoints[0];
+            const dist = getDistanceMeters(d.lat, d.lng, target.lat, target.lng);
+            
+            if (dist < 5) { // Arrival
+               if (!target.landedAt) {
+                  target.landedAt = Date.now();
+                  addLog(`[ARRIVAL] UAV_${d.id} reached independent target`, "TACTICAL", { lat: target.lat, lng: target.lng });
+               }
+               if ((Date.now() - target.landedAt) > 5000) {
+                  return { ...d, waypoints: d.waypoints.slice(1) };
+               }
+               return { ...d, lat: target.lat, lng: target.lng };
+            }
+
+            // Move toward target
+            const movement = moveTowardCoordinates(
+              d.lat,
+              d.lng,
+              target.lat,
+              target.lng,
+              DRONE_CRUISE_MPS * deltaSeconds
+            );
+            return {
+               ...d,
+               lat: movement.lat,
+               lng: movement.lng,
+               alt: easeAltitude(
+                 d.alt,
+                 droneTargetAlt,
+                 deltaSeconds,
+                 DRONE_CLIMB_MPS,
+                 DRONE_DESCENT_MPS
+               ),
+               targetAlt: droneTargetAlt,
+               speed: (movement.movedMeters / deltaSeconds) * 3.6,
+               pwr: Math.max(0, d.pwr - 0.02)
+            };
+          }
+
+          return {
+            ...d,
+            alt: easeAltitude(
+              d.alt,
+              droneTargetAlt,
+              deltaSeconds,
+              DRONE_CLIMB_MPS,
+              DRONE_DESCENT_MPS
+            ),
+            targetAlt: droneTargetAlt,
+            speed: d.speed ?? 0,
+            pwr: Math.max(0, d.pwr - (Math.random() * 0.004))
+          };
+        })
       }));
     }, 100);
     return () => clearInterval(interval);
   }, [lastAIParsedCommand]);
 
   const prepareManualReview = (swarmId, waypoints, droneId = null) => {
-    const swarm = telemetry.swarms.find(s => s.id === swarmId);
-    if (!swarm || waypoints.length === 0) return;
+    if (waypoints.length === 0) return;
 
-    let startLat = swarm.baseLat;
-    let startLng = swarm.baseLng;
+    let startLat = 0;
+    let startLng = 0;
+    let assigneeName = '';
 
-    if (droneId) {
-      const drone = swarm.drones.find(d => d.id === droneId);
-      if (drone) {
-        startLat = drone.lat;
-        startLng = drone.lng;
+    if (swarmId) {
+      const swarm = telemetry.swarms.find(s => s.id === swarmId);
+      if (!swarm) return;
+      startLat = swarm.baseLat;
+      startLng = swarm.baseLng;
+      assigneeName = `SWARM_${swarmId}`;
+
+      if (droneId) {
+        const drone = swarm.drones.find(d => d.id === droneId);
+        if (drone) {
+          startLat = drone.lat;
+          startLng = drone.lng;
+          assigneeName = `UAV_${droneId}`;
+        }
       }
+    } else if (droneId) {
+      const drone = (telemetry.unassignedDrones || []).find(d => d.id === droneId);
+      if (!drone) return;
+      startLat = drone.lat;
+      startLng = drone.lng;
+      assigneeName = `UAV_${droneId}`;
+    } else {
+      return;
     }
 
     // Simulate weather for this manual route
     const weatherConditions = ["OPTIMAL", "MARGINAL", "STABLE"];
-    const missionWeather = {
+    const missionWeather = makeMissionWeather({
       condition: weatherConditions[Math.floor(Math.random() * 3)],
-      wind: `${Math.floor(Math.random() * 10 + 5)} KTS NE`,
-      vis: `10 KM`, temp: `24°C`, humidity: `60%`
-    };
+      speedKts: Math.floor(Math.random() * 10 + 5),
+      direction: 'NE',
+      visibilityKm: 10,
+      tempC: 24,
+      humidity: '60%'
+    });
 
     const airSpeedKPH = 80;
     
@@ -513,10 +692,9 @@ export function MissionProvider({ children }) {
        const travelSecs = d / (airSpeedKPH / 3.6);
        const eta = new Date(Date.now() + (totalDist / (airSpeedKPH / 3.6)) * 1000);
        prev = wp;
-       return { ...wp, eta: formatSystemTime(eta), label: `WAYPOINT_${idx+1}`, distance: (d/1000).toFixed(2) };
+       return { ...wp, eta: formatSystemTime(eta), label: `WAYPOINT_${idx+1}`, distanceMeters: d };
     });
 
-    const assigneeName = droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`;
     const parsedData = {
       raw: "MANUAL_TACTICAL_PLAN",
       swarmId,
@@ -527,7 +705,7 @@ export function MissionProvider({ children }) {
       intent: "MANUAL_PATH",
       missionWeather,
       predictedGS: airSpeedKPH,
-      distance: (totalDist / 1000).toFixed(2),
+      distanceMeters: totalDist,
       durationMin: Math.ceil((totalDist / (airSpeedKPH / 3.6)) / 60),
       eta: wpsWithETA[wpsWithETA.length - 1].eta,
       timestamp: formatSystemTime(),
@@ -571,11 +749,14 @@ export function MissionProvider({ children }) {
     const distM = Math.sqrt(Math.pow(destination.lat - swarm.baseLat, 2) + Math.pow(destination.lng - swarm.baseLng, 2)) * 111320;
     
     const weatherConditions = ["OPTIMAL", "MARGINAL", "STABLE"];
-    const missionWeather = {
+    const missionWeather = makeMissionWeather({
       condition: weatherConditions[Math.floor(Math.random() * 3)],
-      wind: `${Math.floor(Math.random() * 10 + 5)} KTS NE`,
-      vis: `10 KM`, temp: `24°C`, humidity: `60%`
-    };
+      speedKts: Math.floor(Math.random() * 10 + 5),
+      direction: 'NE',
+      visibilityKm: 10,
+      tempC: 24,
+      humidity: '60%'
+    });
 
     const airSpeedKPH = 80;
     const predictedGS = 75;
@@ -584,7 +765,7 @@ export function MissionProvider({ children }) {
 
     const parsedData = {
       raw: text, swarmId, targetDroneId, destination, destName, intent, missionWeather,
-      predictedGS, distance: (distM / 1000).toFixed(2), durationMin: Math.ceil(flightSecsCorrected / 60),
+      predictedGS, distanceMeters: distM, durationMin: Math.ceil(flightSecsCorrected / 60),
       eta: formatSystemTime(eta), timestamp: formatSystemTime(), confidence: 0.94,
       tasks: [{ id: 1, action: 'DEPARTURE', status: 'PENDING' }, { id: 2, action: 'TRANSIT', status: 'PENDING' }]
     };
@@ -712,6 +893,16 @@ export function MissionProvider({ children }) {
     moveDroneToSwarm,
     updateDroneAlt,
     updateSwarmAlt,
+    unitSystem,
+    setUnitSystem,
+    formatAltitude,
+    formatDistance,
+    formatSpeed,
+    formatTemperature,
+    formatVisibility,
+    formatWind,
+    altitudeToDisplayValue,
+    altitudeInputToMeters,
     LOCATIONS,
     globalMapCenter,
     changeGlobalLocation

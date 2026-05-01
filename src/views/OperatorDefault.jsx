@@ -9,6 +9,117 @@ const WeatherHUD = () => null; // Deprecated, moved to Top Bar
 
 const TacticalHUDOverlay = () => null; // Deprecated, moved to Top Bar
 
+const resolveFocusedDroneData = (telemetry, focusDrone) => {
+  if (!focusDrone?.droneId) {
+    return {
+      normalizedFocusDrone: null,
+      activeSwarm: telemetry.swarms?.[0] || null,
+      activeDrone: null
+    };
+  }
+
+  const activeSwarm = focusDrone.swarmId != null && focusDrone.swarmId !== ''
+    ? telemetry.swarms?.find((s) => s.id === focusDrone.swarmId)
+    : telemetry.swarms?.find((s) => s.drones?.some((d) => d.id === focusDrone.droneId));
+
+  const activeDrone = activeSwarm?.drones?.find((d) => d.id === focusDrone.droneId)
+    || telemetry.unassignedDrones?.find((d) => d.id === focusDrone.droneId)
+    || null;
+
+  return {
+    normalizedFocusDrone: activeDrone ? { ...focusDrone, swarmId: activeSwarm?.id ?? null } : focusDrone,
+    activeSwarm: activeSwarm || null,
+    activeDrone
+  };
+};
+
+function FocusedDroneHud({ details, displayUnit, formatAltitude, formatSpeed, formatWind, windSource }) {
+  const accent = details?.color || displayUnit?.color || 'var(--cyan-primary)';
+  const primaryItems = [
+    { label: 'SPD', value: formatSpeed(displayUnit?.speed || 0) },
+    { label: 'ALT', value: formatAltitude(displayUnit?.alt || 0) },
+    { label: 'HDG', value: `${displayUnit?.heading || 300}°` },
+    { label: 'WIND', value: formatWind(windSource) }
+  ];
+  const detailItems = details ? [
+    { label: 'PWR', value: `${Math.round(details.power ?? 0)}%` },
+    { label: 'SWARM', value: details.swarmLabel },
+    { label: 'CMD', value: formatAltitude(details.targetAlt) },
+    { label: 'STATUS', value: details.status }
+  ] : [];
+  const secondaryText = details
+    ? `${Number(details.lat || 0).toFixed(4)}, ${Number(details.lng || 0).toFixed(4)}`
+    : null;
+  const allItems = [...primaryItems, ...detailItems].filter((item) => item.value !== undefined && item.value !== null && item.value !== '');
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'minmax(160px, 190px) auto',
+      alignItems: 'center',
+      border: '1px solid rgba(0, 229, 255, 0.38)',
+      background: 'rgba(4, 8, 16, 0.9)',
+      borderRadius: '10px',
+      boxShadow: '0 10px 24px rgba(0, 0, 0, 0.35), inset 0 0 14px rgba(0, 229, 255, 0.06)',
+      backdropFilter: 'blur(8px)',
+      overflow: 'hidden',
+      width: 'fit-content',
+      maxWidth: 'min(560px, calc(100vw - 560px))'
+    }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: '6px',
+        padding: '10px 14px',
+        borderRight: '1px solid rgba(255,255,255,0.08)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '9px', height: '9px', borderRadius: '999px', background: accent, boxShadow: `0 0 10px ${accent}` }} />
+          <div className="mono" style={{ fontSize: '9px', letterSpacing: '0.16em', color: 'var(--cyan-primary)' }}>FOCUSED UAV</div>
+        </div>
+        <div className="display" style={{ fontSize: '18px', lineHeight: 1, color: '#fff', letterSpacing: '0.05em' }}>
+          {details?.idLabel || (displayUnit?.id ? `UAV_${displayUnit.id}` : (displayUnit?.name || 'NO_SELECTION'))}
+        </div>
+        {details && (
+          <div className="mono" style={{ fontSize: '10px', color: accent, letterSpacing: '0.06em' }}>
+            {details.swarmLabel} / {details.status}
+          </div>
+        )}
+        {secondaryText && (
+          <div className="mono text-muted" style={{ fontSize: '9px' }}>
+            {secondaryText}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, minmax(58px, auto))',
+        gap: '0',
+        padding: '4px 6px'
+      }}>
+        {allItems.map((item, index) => (
+          <div
+            key={item.label}
+            style={{
+              padding: '7px 8px',
+              borderLeft: index % 4 === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)',
+              borderTop: index >= 4 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              minHeight: '40px'
+            }}
+          >
+            <div className="mono text-muted" style={{ fontSize: '8px', marginBottom: '4px', letterSpacing: '0.1em' }}>{item.label}</div>
+            <div className="mono" style={{ fontSize: item.label === 'SWARM' || item.label === 'STATUS' ? '10px' : '12px', color: item.label === 'SWARM' ? accent : '#fff', lineHeight: 1.05, wordBreak: 'break-word' }}>
+              {item.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const swarmLabelIcon = (id, color, name) => {
   const text = name || 'SWARM_' + id;
   return new L.DivIcon({
@@ -80,8 +191,7 @@ const MissionDraftLayers = React.memo(({ waypoints, onUpdateWaypoint }) => {
   return JSON.stringify(prev.waypoints) === JSON.stringify(next.waypoints);
 });
 
-function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime, isIndependent }) {
-  const markerRef = React.useRef(null);
+function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime, registerSelectionInteraction }) {
   const map = useMap();
   const [zoom, setZoom] = React.useState(map.getZoom());
 
@@ -91,56 +201,46 @@ function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime, is
     return () => { map.off('zoomend', handleZoom); };
   }, [map]);
 
-  useEffect(() => {
-    if (forcePopupTime && markerRef.current) {
-      markerRef.current.openPopup();
-    }
-  }, [forcePopupTime]);
-
-  // Dynamically calculate size based on zoom level (e.g., zoom 15 = 12px, zoom 18 = 24px)
-  const baseSize = Math.max(6, (zoom - 12) * 4);
-  const finalSize = isFocused ? baseSize * 1.5 : baseSize;
-  const iconHtml = `
-    <svg width="${finalSize}" height="${finalSize}" viewBox="0 0 24 24" fill="none" stroke="${swarmColor}" stroke-width="${isFocused ? '2.5' : '1.5'}" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 ${isFocused ? '4px' : '1px'} ${swarmColor}); transition: all 0.2s;">
-      <circle cx="12" cy="12" r="3" fill="${isFocused ? '#ffffff' : swarmColor}" />
-      <path d="M12 2v6" />
-      <path d="M12 16v6" />
-      <path d="M2 12h6" />
-      <path d="M16 12h6" />
-    </svg>
-  `;
-  const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [finalSize, finalSize], iconAnchor: [finalSize / 2, finalSize / 2] });
+  // Use a slightly larger hit area in 2D so UAV selection is easy.
+  const baseRadius = Math.max(8, (zoom - 11) * 1.35);
+  const finalRadius = isFocused ? baseRadius + 3 : baseRadius;
 
   return (
-    <Marker 
-      ref={markerRef}
-      position={[drone.lat, drone.lng]} 
-      icon={icon}
+    <CircleMarker
+      center={[drone.lat, drone.lng]}
+      radius={finalRadius}
+      pathOptions={{
+        color: '#ffffff',
+        weight: isFocused ? 2 : 1.5,
+        fillColor: swarmColor,
+        fillOpacity: 0.92
+      }}
+      bubblingMouseEvents={false}
       eventHandlers={{
-        click: () => {
+        mousedown: (e) => {
+          if (e && e.originalEvent) {
+            L.DomEvent.stop(e.originalEvent);
+          }
+          if (registerSelectionInteraction) registerSelectionInteraction();
+        },
+        click: (e) => {
+          if (e && e.originalEvent) {
+            L.DomEvent.stop(e.originalEvent);
+          }
+          if (registerSelectionInteraction) registerSelectionInteraction();
           if (onFocus) onFocus();
-          if (markerRef.current) markerRef.current.openPopup();
         },
         dblclick: (e) => {
-           e.target.openPopup();
+           if (e?.originalEvent) {
+             L.DomEvent.stop(e.originalEvent);
+           }
+           if (registerSelectionInteraction) registerSelectionInteraction();
+           if (onFocus) onFocus();
         }
       }}
     >
-      <Popup className="tech-popup" autoPan={false}>
-        <div style={{ background: 'rgba(8, 12, 20, 0.95)', border: `1px solid ${swarmColor}`, padding: '12px', minWidth: '140px', backdropFilter: 'blur(4px)' }}>
-          <div style={{ borderBottom: `1px solid ${swarmColor}`, paddingBottom: '4px', marginBottom: '8px' }}>
-            <span className="mono" style={{ fontSize: '12px', fontWeight: 'bold', color: swarmColor }}>UAV_{drone.id}</span>
-          </div>
-          <div className="flex-column" style={{ gap: '4px' }}>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>PWR: {drone.pwr.toFixed(1)}%</span>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>LAT: {drone.lat.toFixed(5)}</span>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>LNG: {drone.lng.toFixed(5)}</span>
-          </div>
-        </div>
-      </Popup>
-
       {/* Persistent HUD Label for focused drone using a high-visibility Marker */}
-      {(isFocused || isIndependent) && (
+      {isFocused && (
         <Marker
           position={[drone.lat, drone.lng]}
           interactive={false}
@@ -169,48 +269,126 @@ function DroneMarker({ drone, swarmColor, isFocused, onFocus, forcePopupTime, is
           })}
         />
       )}
-    </Marker>
+    </CircleMarker>
   );
 }
 
-function MapEventsListener({ setAutoTrack, isTargeting, onMapClick }) {
+function MapEventsListener({ setAutoTrack, isTargeting, onMapClick, setFocusDrone, selectionInteractionRef }) {
   useMapEvents({
     dragstart: () => setAutoTrack(false),
     click: (e) => {
       if (isTargeting) {
         onMapClick(e.latlng);
+      } else if (setFocusDrone) {
+        if (Date.now() - (selectionInteractionRef?.current || 0) > 250) {
+          setFocusDrone(null);
+        }
       }
     }
   });
   return null;
 }
 
-function MapTracker({ isTargeting, autoTrack }) {
+function MapTracker({ isTargeting, autoTrack, normalizedFocusDrone }) {
   const map = useMap();
-  const { telemetry, targetLock, focusDrone, lastAIParsedCommand } = useMission();
+  const { telemetry, targetLock, lastAIParsedCommand } = useMission();
+  const isFlyingRef = React.useRef(false);
+  const targetIdRef = React.useRef(null);
+  const releaseFlightRef = React.useRef(null);
+  const lastTrackedPositionRef = React.useRef(null);
+  const lastFollowAtRef = React.useRef(0);
+  
+  useEffect(() => {
+    const onMoveStart = () => { isFlyingRef.current = true; };
+    const onMoveEnd = () => { isFlyingRef.current = false; };
+    map.on('movestart', onMoveStart);
+    map.on('moveend', onMoveEnd);
+    return () => {
+      map.off('movestart', onMoveStart);
+      map.off('moveend', onMoveEnd);
+      if (releaseFlightRef.current) {
+        window.clearTimeout(releaseFlightRef.current);
+      }
+    };
+  }, [map]);
   
   useEffect(() => {
     if (isTargeting || !autoTrack) return;
     
     let target = null;
-    if (focusDrone) {
-      const swarm = telemetry.swarms.find(s => s.id === focusDrone.swarmId);
-      target = swarm?.drones.find(d => d.id === focusDrone.droneId);
+    let targetIdentifier = null;
+    let targetZoom = null;
+    
+    if (normalizedFocusDrone) {
+      targetIdentifier = `drone-${normalizedFocusDrone.droneId}`;
+      if (normalizedFocusDrone.swarmId) {
+        const swarm = telemetry.swarms.find(s => s.id === normalizedFocusDrone.swarmId);
+        target = swarm?.drones.find(d => d.id === normalizedFocusDrone.droneId);
+        targetZoom = 18; // auto-zoom in significantly on the drone
+      } else {
+        target = telemetry.unassignedDrones?.find(d => d.id === normalizedFocusDrone.droneId);
+        targetZoom = 18;
+      }
     } else if (lastAIParsedCommand) {
+      targetIdentifier = `swarm-${lastAIParsedCommand.swarmId}`;
       target = telemetry.swarms.find(s => s.id === lastAIParsedCommand.swarmId);
+      targetZoom = 16;
     } else if (targetLock && targetLock.assignedSwarm) {
+      targetIdentifier = `swarm-${targetLock.assignedSwarm}`;
       target = telemetry.swarms.find(s => s.id === targetLock.assignedSwarm);
+      targetZoom = 16;
     }
 
     if (target) {
-      let targetZoom = map.getZoom();
-      // Auto-zoom in significantly if focusing on a precise drone and currently zoomed out
-      if (focusDrone && targetZoom < 17) {
-        targetZoom = 17;
+      const lat = target.lat || target.baseLat;
+      const lng = target.lng || target.baseLng;
+      const nextPositionKey = `${lat.toFixed(6)}:${lng.toFixed(6)}`;
+      
+      // If we selected a NEW target, initiate a smooth cinematic flyTo
+      if (targetIdRef.current !== targetIdentifier) {
+        targetIdRef.current = targetIdentifier;
+        lastTrackedPositionRef.current = nextPositionKey;
+        isFlyingRef.current = true; // Synchronously block panTo
+        if (releaseFlightRef.current) {
+          window.clearTimeout(releaseFlightRef.current);
+        }
+        const currentZoom = map.getZoom();
+        const zoom = Math.max(currentZoom, targetZoom || 16);
+        map.flyTo([lat, lng], zoom, { duration: 1.2, easeLinearity: 0.18, animate: true });
+        releaseFlightRef.current = window.setTimeout(() => {
+          isFlyingRef.current = false;
+        }, 1250);
+        return;
       }
-      map.setView([target.lat || target.baseLat, target.lng || target.baseLng], targetZoom, { animate: true });
+      
+      // If we are tracking the SAME target, do not interrupt the flyTo animation!
+      // Only follow when the target has actually moved enough and avoid stacking animations.
+      if (!isFlyingRef.current) {
+        if (lastTrackedPositionRef.current === nextPositionKey) {
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastFollowAtRef.current < 260) {
+          return;
+        }
+
+        const center = map.getCenter();
+        const distanceToTarget = map.distance(center, L.latLng(lat, lng));
+        if (distanceToTarget < 6) {
+          lastTrackedPositionRef.current = nextPositionKey;
+          return;
+        }
+
+        lastTrackedPositionRef.current = nextPositionKey;
+        lastFollowAtRef.current = now;
+        map.panTo([lat, lng], { animate: true, duration: 0.3, easeLinearity: 0.25 });
+      }
+    } else {
+      targetIdRef.current = null;
+      lastTrackedPositionRef.current = null;
     }
-  }, [map, telemetry, focusDrone, targetLock, lastAIParsedCommand, isTargeting, autoTrack]);
+  }, [map, telemetry, normalizedFocusDrone, targetLock, lastAIParsedCommand, isTargeting, autoTrack]);
 
   return null;
 }
@@ -243,6 +421,12 @@ export default function OperatorDefault() {
     moveDroneToSwarm,
     updateDroneAlt,
     updateSwarmAlt,
+    unitSystem,
+    formatAltitude,
+    formatSpeed,
+    formatWind,
+    altitudeToDisplayValue,
+    altitudeInputToMeters,
     globalMapCenter
   } = useMission();
 
@@ -254,6 +438,8 @@ export default function OperatorDefault() {
   const [altitudeDrafts, setAltitudeDrafts] = useState({});
   const [maximizedFeed, setMaximizedFeed] = useState(null);
   const mapCenter = useMemo(() => globalMapCenter, [globalMapCenter]);
+  const droneCardRefs = React.useRef({});
+  const selectionInteractionRef = React.useRef(0);
 
   const setAltitudeDraft = useCallback((key, value) => {
     setAltitudeDrafts(prev => ({ ...prev, [key]: value }));
@@ -294,6 +480,12 @@ export default function OperatorDefault() {
     }
   };
 
+  useEffect(() => {
+    if (isTargeting) {
+      setAutoTrack(false);
+    }
+  }, [isTargeting]);
+
   // Keyboard shortcut: ESC to close enlarged feed
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -306,17 +498,49 @@ export default function OperatorDefault() {
   }, [enlargedFeed, setEnlargedFeed]);
 
   const deckRef = React.useRef(null);
+  const registerSelectionInteraction = useCallback(() => {
+    selectionInteractionRef.current = Date.now();
+  }, []);
 
-  const activeSwarm = focusDrone?.swarmId ? telemetry.swarms?.find(s => s.id === focusDrone.swarmId) : telemetry.swarms?.[0];
-  const activeDrone = focusDrone ? 
-    (focusDrone.swarmId ? activeSwarm?.drones?.find(d => d.id === focusDrone.droneId) : telemetry.unassignedDrones?.find(d => d.id === focusDrone.droneId)) 
-    : null;
+  const {
+    normalizedFocusDrone,
+    activeSwarm,
+    activeDrone
+  } = useMemo(() => resolveFocusedDroneData(telemetry, focusDrone), [telemetry, focusDrone]);
   const displayUnit = activeDrone ? {
     ...activeDrone,
     speed: activeDrone.speed ?? activeSwarm?.speed ?? 0,
     alt: activeDrone.alt ?? activeSwarm?.alt ?? 0,
     heading: activeDrone.waypoints?.length > 0 ? "LOCK" : (activeSwarm?.heading || 300)
   } : activeSwarm;
+  const selectedUnitDetails = activeDrone ? {
+    idLabel: `UAV_${activeDrone.id}`,
+    swarmLabel: activeSwarm?.name || (activeSwarm?.id ? `SWARM ${activeSwarm.id}` : 'INDEPENDENT'),
+    power: activeDrone.pwr ?? 0,
+    lat: activeDrone.lat,
+    lng: activeDrone.lng,
+    status: activeDrone.status || activeSwarm?.status || 'ACTIVE',
+    targetAlt: activeDrone.targetAlt ?? activeDrone.alt ?? activeSwarm?.targetAlt ?? activeSwarm?.alt ?? 0,
+    color: activeSwarm?.color || '#ffcc00'
+  } : null;
+
+  useEffect(() => {
+    if (!normalizedFocusDrone?.droneId) return;
+
+    if (normalizedFocusDrone.swarmId && expandedSwarms[normalizedFocusDrone.swarmId] === false) {
+      toggleSwarmExpand(normalizedFocusDrone.swarmId, true);
+    }
+
+    const scrollToCard = () => {
+      const card = droneCardRefs.current[normalizedFocusDrone.droneId];
+      if (card) {
+        card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    };
+
+    const frame = window.requestAnimationFrame(scrollToCard);
+    return () => window.cancelAnimationFrame(frame);
+  }, [normalizedFocusDrone, expandedSwarms, toggleSwarmExpand]);
 
   const MapInstanceHook = () => {
     const map = useMap();
@@ -404,50 +628,14 @@ export default function OperatorDefault() {
         zIndex: 2000,
         pointerEvents: 'none' // Allow clicks to pass through if necessary, though the bar has content
       }}>
-        <div style={{ 
-          display: 'flex', 
-          gap: '24px', 
-          alignItems: 'center', 
-          border: '1px solid rgba(0, 229, 255, 0.4)', 
-          padding: '8px 24px', 
-          background: 'rgba(4, 8, 16, 0.85)', 
-          borderRadius: '4px', 
-          boxShadow: '0 0 20px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 229, 255, 0.1)',
-          backdropFilter: 'blur(8px)',
-          pointerEvents: 'auto'
-        }}>
-          {/* Selected Unit Section */}
-          <div style={{ borderRight: '1px solid rgba(255,255,255,0.1)', paddingRight: '20px', marginRight: '4px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: displayUnit?.color || 'var(--cyan-primary)', boxShadow: `0 0 10px ${displayUnit?.color || 'var(--cyan-primary)'}` }}></div>
-             <span className="mono" style={{ fontSize: '13px', color: 'var(--cyan-primary)', letterSpacing: '1px', fontWeight: 'bold' }}>
-                UAV: <span style={{ color: '#fff' }}>{displayUnit?.id ? `ALPHA_${displayUnit.id}` : (displayUnit?.name || '---')}</span>
-             </span>
-          </div>
-
-          {/* Speed */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2"><path d="m12 14 4-4-4-4M3 3.4c3 3 5.6 3 8.5 3.1M3 20.6c3-3 5.6-3 8.5-3.1"/><path d="M16 10h5M21 10l-2 2M21 10l-2-2"/></svg>
-            <span className="mono" style={{ fontSize: '18px', color: '#fff' }}>{Math.round(displayUnit?.speed || 0)}<small style={{ fontSize: '11px', opacity: 0.5, marginLeft: '2px' }}>KPH</small></span>
-          </div>
-          
-          {/* Altitude */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2"><path d="M21 10c-3-3-5-4.5-9-4.5s-6 1.5-9 4.5M21 16c-3-3-5-4.5-9-4.5s-6 1.5-9 4.5"/><path d="M12 11v10M9 18l3 3 3-3"/></svg>
-            <span className="mono" style={{ fontSize: '18px', color: '#fff' }}>{Math.round(displayUnit?.alt || 0)}<small style={{ fontSize: '11px', opacity: 0.5, marginLeft: '2px' }}>M</small></span>
-          </div>
-          
-          {/* Heading */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2 2-4.2 4.2-2 2 2-2 4.2-4.2 2-2z"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
-            <span className="mono" style={{ fontSize: '18px', color: '#fff' }}>{displayUnit?.heading || 300}°</span>
-          </div>
-          
-          {/* Wind */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2"><path d="M17.7 7.7A7.1 7.1 0 1 1 5 8"/><path d="M7 21l3-3-3-3M21 21l-3-3 3-3"/><path d="M3 13h18"/><path d="M12 8V3l3 3M9 6l3-3"/></svg>
-            <span className="mono" style={{ fontSize: '18px', color: '#fff' }}>{lastAIParsedCommand?.missionWeather?.wind || '12 KPH NW'}</span>
-          </div>
-        </div>
+        <FocusedDroneHud
+          details={selectedUnitDetails}
+          displayUnit={displayUnit}
+          formatAltitude={formatAltitude}
+          formatSpeed={formatSpeed}
+          formatWind={formatWind}
+          windSource={lastAIParsedCommand?.missionWeather}
+        />
       </div>
 
       {/* Main Body */}
@@ -476,10 +664,11 @@ export default function OperatorDefault() {
                  <div key={idx} 
                       onClick={() => {
                         setFocusDrone({ swarmId: s.id, droneId: s.drones[0].id });
+                        registerSelectionInteraction();
                         if (!isExpanded) toggleSwarmExpand(s.id, true);
                       }}
                       className="flex-column" 
-                      style={{ gap: '8px', padding: '12px', border: '1px solid var(--border-color)', background: focusDrone?.swarmId === s.id ? 'rgba(0,229,255,0.05)' : 'rgba(255,255,255,0.02)', cursor: 'pointer' }}>
+                      style={{ gap: '8px', padding: '12px', border: `1px solid ${normalizedFocusDrone?.swarmId === s.id ? 'rgba(0,229,255,0.75)' : 'var(--border-color)'}`, background: normalizedFocusDrone?.swarmId === s.id ? 'rgba(0,229,255,0.08)' : 'rgba(255,255,255,0.02)', boxShadow: normalizedFocusDrone?.swarmId === s.id ? 'inset 0 0 0 1px rgba(0,229,255,0.2), 0 0 16px rgba(0,229,255,0.08)' : 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
                    <div className="flex-between">
                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                        {editingSwarmId === s.id ? (
@@ -517,13 +706,13 @@ export default function OperatorDefault() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                          <span className="mono text-main" style={{ fontSize: '10px' }}>ALT:</span>
                             <input 
-                            value={altitudeDrafts[`swarm-${s.id}`] ?? String(Math.round(s.targetAlt ?? s.alt))}
+                            value={altitudeDrafts[`swarm-${s.id}`] ?? altitudeToDisplayValue(s.targetAlt ?? s.alt)}
                             type="number" 
                             onChange={(e) => setAltitudeDraft(`swarm-${s.id}`, e.target.value)}
-                            onBlur={(e) => commitAltitudeDraft(`swarm-${s.id}`, e.target.value, s.targetAlt ?? s.alt, (value) => updateSwarmAlt(s.id, value))}
+                            onBlur={(e) => commitAltitudeDraft(`swarm-${s.id}`, altitudeInputToMeters(e.target.value), s.targetAlt ?? s.alt, (value) => updateSwarmAlt(s.id, value))}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
-                                commitAltitudeDraft(`swarm-${s.id}`, e.currentTarget.value, s.targetAlt ?? s.alt, (value) => updateSwarmAlt(s.id, value));
+                                commitAltitudeDraft(`swarm-${s.id}`, altitudeInputToMeters(e.currentTarget.value), s.targetAlt ?? s.alt, (value) => updateSwarmAlt(s.id, value));
                                 e.target.blur();
                               } else if (e.key === 'Escape') {
                                 clearAltitudeDraft(`swarm-${s.id}`);
@@ -533,7 +722,7 @@ export default function OperatorDefault() {
                             onClick={e => e.stopPropagation()}
                             style={{ width: '40px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--cyan-primary)', fontSize: '10px', padding: '1px 2px', fontFamily: 'monospace', outline: 'none', textAlign: 'center' }}
                          />
-                         <span className="mono text-main" style={{ fontSize: '10px' }}>m | SPD: {s.speed.toFixed(0)}kph</span>
+                         <span className="mono text-main" style={{ fontSize: '10px' }}>{unitSystem === 'imperial' ? 'ft' : 'm'} | SPD: {formatSpeed(s.speed, { includeUnit: false })}{unitSystem === 'imperial' ? 'mph' : 'kph'}</span>
                       </div>
                     </div>
                    
@@ -542,6 +731,10 @@ export default function OperatorDefault() {
                         {s.drones.map(d => (
                              <div  
                                 key={d.id}
+                                ref={(node) => {
+                                  if (node) droneCardRefs.current[d.id] = node;
+                                  else delete droneCardRefs.current[d.id];
+                                }}
                                 title={`UAV_${d.id}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -554,10 +747,11 @@ export default function OperatorDefault() {
                                   setAutoTrack(true);
                                 }}
                                 className="flex-between"
-                                style={{ 
+                              style={{ 
                                   padding: '8px',
-                                  border: `1px solid ${focusDrone?.droneId === d.id ? 'var(--cyan-primary)' : 'rgba(255,255,255,0.1)'}`, 
-                                  background: focusDrone?.droneId === d.id ? 'rgba(0,229,255,0.1)' : 'transparent', 
+                                  border: `1px solid ${normalizedFocusDrone?.droneId === d.id ? 'var(--cyan-primary)' : 'rgba(255,255,255,0.1)'}`, 
+                                  background: normalizedFocusDrone?.droneId === d.id ? 'rgba(0,229,255,0.1)' : 'transparent', 
+                                  boxShadow: normalizedFocusDrone?.droneId === d.id ? '0 0 18px rgba(0,229,255,0.16), inset 0 0 0 1px rgba(0,229,255,0.18)' : 'none',
                                   borderRadius: '4px',
                                   cursor: 'pointer',
                                   transition: 'all 0.2s'
@@ -573,13 +767,13 @@ export default function OperatorDefault() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} onClick={e => e.stopPropagation()}>
                                     <span className="mono text-muted" style={{ fontSize: '9px' }}>ALT:</span>
                                     <input 
-                                      value={altitudeDrafts[`drone-${d.id}`] ?? String(Math.round(d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt))}
+                                      value={altitudeDrafts[`drone-${d.id}`] ?? altitudeToDisplayValue(d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt)}
                                       type="number" 
                                       onChange={(e) => setAltitudeDraft(`drone-${d.id}`, e.target.value)}
-                                      onBlur={(e) => commitAltitudeDraft(`drone-${d.id}`, e.target.value, d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt, (value) => updateDroneAlt(d.id, value))}
+                                      onBlur={(e) => commitAltitudeDraft(`drone-${d.id}`, altitudeInputToMeters(e.target.value), d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt, (value) => updateDroneAlt(d.id, value))}
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
-                                          commitAltitudeDraft(`drone-${d.id}`, e.currentTarget.value, d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt, (value) => updateDroneAlt(d.id, value));
+                                          commitAltitudeDraft(`drone-${d.id}`, altitudeInputToMeters(e.currentTarget.value), d.targetAlt ?? d.alt ?? s.targetAlt ?? s.alt, (value) => updateDroneAlt(d.id, value));
                                           e.target.blur();
                                         } else if (e.key === 'Escape') {
                                           clearAltitudeDraft(`drone-${d.id}`);
@@ -588,7 +782,7 @@ export default function OperatorDefault() {
                                       }}
                                       style={{ width: '35px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--orange-primary)', fontSize: '9px', padding: '1px 2px', fontFamily: 'monospace', outline: 'none', textAlign: 'center' }}
                                     />
-                                    <span className="mono text-muted" style={{ fontSize: '9px' }}>m</span>
+                                    <span className="mono text-muted" style={{ fontSize: '9px' }}>{unitSystem === 'imperial' ? 'ft' : 'm'}</span>
                                   </div>
                                   <span className="mono text-muted" style={{ fontSize: '9px' }}>{d.pwr.toFixed(0)}%</span>
                                   <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -623,7 +817,7 @@ export default function OperatorDefault() {
 
               {/* INDEPENDENT UNITS SECTION */}
               {telemetry.unassignedDrones && telemetry.unassignedDrones.length > 0 && (
-                <div className="flex-column" style={{ gap: '8px', padding: '12px', border: '1px solid var(--border-color)', background: 'rgba(255,255,255,0.02)' }}>
+                <div className="flex-column" style={{ gap: '8px', padding: '12px', border: `1px solid ${normalizedFocusDrone?.swarmId == null && normalizedFocusDrone?.droneId ? 'rgba(255,204,0,0.75)' : 'var(--border-color)'}`, background: normalizedFocusDrone?.swarmId == null && normalizedFocusDrone?.droneId ? 'rgba(255,204,0,0.06)' : 'rgba(255,255,255,0.02)', boxShadow: normalizedFocusDrone?.swarmId == null && normalizedFocusDrone?.droneId ? 'inset 0 0 0 1px rgba(255,204,0,0.18), 0 0 16px rgba(255,204,0,0.08)' : 'none', transition: 'all 0.2s' }}>
                    <div className="flex-between" style={{ paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>
                      <span className="mono" style={{ fontSize: '12px', color: '#fff' }}>INDEPENDENT UNITS</span>
                      <span className="mono text-muted" style={{ fontSize: '10px' }}>{telemetry.unassignedDrones.length} ACTIVE</span>
@@ -632,6 +826,10 @@ export default function OperatorDefault() {
                       {telemetry.unassignedDrones.map(d => (
                          <div  
                             key={d.id}
+                            ref={(node) => {
+                              if (node) droneCardRefs.current[d.id] = node;
+                              else delete droneCardRefs.current[d.id];
+                            }}
                             title={`UAV_${d.id}`}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -646,8 +844,9 @@ export default function OperatorDefault() {
                             className="flex-between"
                             style={{ 
                               padding: '8px',
-                              border: `1px solid ${focusDrone?.droneId === d.id ? 'var(--cyan-primary)' : 'rgba(255,255,255,0.1)'}`, 
-                              background: focusDrone?.droneId === d.id ? 'rgba(0,229,255,0.1)' : 'transparent', 
+                              border: `1px solid ${normalizedFocusDrone?.droneId === d.id ? 'var(--cyan-primary)' : 'rgba(255,255,255,0.1)'}`, 
+                              background: normalizedFocusDrone?.droneId === d.id ? 'rgba(0,229,255,0.1)' : 'transparent', 
+                              boxShadow: normalizedFocusDrone?.droneId === d.id ? '0 0 18px rgba(0,229,255,0.16), inset 0 0 0 1px rgba(0,229,255,0.18)' : 'none',
                               borderRadius: '4px',
                               cursor: 'pointer',
                               transition: 'all 0.2s'
@@ -663,13 +862,13 @@ export default function OperatorDefault() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} onClick={e => e.stopPropagation()}>
                                 <span className="mono text-muted" style={{ fontSize: '9px' }}>ALT:</span>
                                 <input 
-                                  value={altitudeDrafts[`drone-${d.id}`] ?? String(Math.round(d.targetAlt ?? d.alt ?? 120))}
+                                  value={altitudeDrafts[`drone-${d.id}`] ?? altitudeToDisplayValue(d.targetAlt ?? d.alt ?? 120)}
                                   type="number" 
                                   onChange={(e) => setAltitudeDraft(`drone-${d.id}`, e.target.value)}
-                                  onBlur={(e) => commitAltitudeDraft(`drone-${d.id}`, e.target.value, d.targetAlt ?? d.alt ?? 120, (value) => updateDroneAlt(d.id, value))}
+                                  onBlur={(e) => commitAltitudeDraft(`drone-${d.id}`, altitudeInputToMeters(e.target.value), d.targetAlt ?? d.alt ?? 120, (value) => updateDroneAlt(d.id, value))}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                      commitAltitudeDraft(`drone-${d.id}`, e.currentTarget.value, d.targetAlt ?? d.alt ?? 120, (value) => updateDroneAlt(d.id, value));
+                                      commitAltitudeDraft(`drone-${d.id}`, altitudeInputToMeters(e.currentTarget.value), d.targetAlt ?? d.alt ?? 120, (value) => updateDroneAlt(d.id, value));
                                       e.target.blur();
                                     } else if (e.key === 'Escape') {
                                       clearAltitudeDraft(`drone-${d.id}`);
@@ -678,7 +877,7 @@ export default function OperatorDefault() {
                                   }}
                                   style={{ width: '35px', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--orange-primary)', fontSize: '9px', padding: '1px 2px', fontFamily: 'monospace', outline: 'none', textAlign: 'center' }}
                                 />
-                                <span className="mono text-muted" style={{ fontSize: '9px' }}>m</span>
+                                <span className="mono text-muted" style={{ fontSize: '9px' }}>{unitSystem === 'imperial' ? 'ft' : 'm'}</span>
                               </div>
                               <span className="mono text-muted" style={{ fontSize: '9px' }}>{d.pwr.toFixed(0)}%</span>
                               <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
@@ -717,7 +916,13 @@ export default function OperatorDefault() {
             {!targetLock || targetLock.waypoints.length === 0 ? (
               <button 
                 className={`btn ${isTargeting ? 'btn-alert' : ''}`}
-                onClick={() => setIsTargeting(!isTargeting)}
+                onClick={() => {
+                  const nextTargeting = !isTargeting;
+                  setIsTargeting(nextTargeting);
+                  if (nextTargeting) {
+                    setAutoTrack(false);
+                  }
+                }}
                 style={{ width: '100%', height: '50px', borderStyle: 'dashed' }}
               >
                 <span className="mono" style={{ fontSize: '11px' }}>
@@ -782,21 +987,23 @@ export default function OperatorDefault() {
                  </div>
                  
                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {focusDrone ? (
+                    {normalizedFocusDrone ? (
                       <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                         {normalizedFocusDrone.swarmId && (
+                           <button 
+                              onClick={() => prepareManualReview(normalizedFocusDrone.swarmId, targetLock.waypoints)}
+                              className="btn-primary" 
+                              style={{ flex: '1', padding: '6px', fontSize: '10px', border: '1px solid var(--cyan-primary)', background: 'rgba(0,229,255,0.1)', color: 'var(--cyan-primary)', cursor: 'pointer' }}
+                           >
+                             DEPLOY SWARM {normalizedFocusDrone.swarmId}
+                           </button>
+                         )}
                          <button 
-                            onClick={() => prepareManualReview(focusDrone.swarmId, targetLock.waypoints)}
-                            className="btn-primary" 
-                            style={{ flex: '1', padding: '6px', fontSize: '10px', border: '1px solid var(--cyan-primary)', background: 'rgba(0,229,255,0.1)', color: 'var(--cyan-primary)', cursor: 'pointer' }}
-                         >
-                           REVIEW_S{focusDrone.swarmId}
-                         </button>
-                         <button 
-                            onClick={() => prepareManualReview(focusDrone.swarmId, targetLock.waypoints, focusDrone.droneId)}
+                            onClick={() => prepareManualReview(normalizedFocusDrone.swarmId, targetLock.waypoints, normalizedFocusDrone.droneId)}
                             className="btn-primary" 
                             style={{ flex: '1', padding: '6px', fontSize: '10px', border: '1px solid var(--orange-primary)', background: 'rgba(255,107,0,0.1)', color: 'var(--orange-primary)', cursor: 'pointer', fontWeight: 'bold' }}
                          >
-                           REVIEW_D{focusDrone.droneId}
+                           DEPLOY UAV {normalizedFocusDrone.droneId}
                          </button>
                       </div>
                     ) : (
@@ -867,6 +1074,8 @@ export default function OperatorDefault() {
               focusDrone={focusDrone}
               setAutoTrack={setAutoTrack}
               autoTrack={autoTrack}
+              unitSystem={unitSystem}
+              onSelectionInteraction={registerSelectionInteraction}
             />
           ) : (
             <MapContainer center={mapCenter} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
@@ -877,9 +1086,9 @@ export default function OperatorDefault() {
                 detectRetina={true} 
               />
               <MapInstanceHook />
-              <MapEventsListener setAutoTrack={setAutoTrack} isTargeting={isTargeting} onMapClick={handleMapClick} />
-              <MapTracker isTargeting={isTargeting} autoTrack={autoTrack} />
-              <ScaleControl position="bottomleft" imperial={false} />
+              <MapEventsListener setAutoTrack={setAutoTrack} isTargeting={isTargeting} onMapClick={handleMapClick} setFocusDrone={setFocusDrone} selectionInteractionRef={selectionInteractionRef} />
+              <MapTracker isTargeting={isTargeting} autoTrack={autoTrack} normalizedFocusDrone={normalizedFocusDrone} />
+              <ScaleControl position="bottomleft" imperial={unitSystem === 'imperial'} />
               
               <MissionDraftLayers 
                 waypoints={targetLock?.waypoints} 
@@ -905,20 +1114,31 @@ export default function OperatorDefault() {
                       center={[swarm.baseLat, swarm.baseLng]} 
                       radius={isExpanded ? 100 : 50} 
                       pathOptions={{ color: swarm.color, fillColor: swarm.color, fillOpacity: 0.2 }}
-                      eventHandlers={{ 
-                        dblclick: () => toggleSwarmExpand(swarm.id),
-                        click: () => {
-                           setFocusDrone({ swarmId: swarm.id, droneId: swarm.drones[0]?.id });
-                           if (!isExpanded) toggleSwarmExpand(swarm.id, true);
-                           setAutoTrack(true);
-                        }
-                      }}
+                      interactive={false}
                     />
                     <Marker
                       position={[labelLat, swarm.baseLng]}
                       icon={labelIcon}
-                      interactive={false}
+                      interactive={true}
                       zIndexOffset={1000}
+                      eventHandlers={{
+                        click: (e) => {
+                          if (e?.originalEvent) {
+                            L.DomEvent.stop(e.originalEvent);
+                          }
+                          registerSelectionInteraction();
+                          setFocusDrone({ swarmId: swarm.id, droneId: swarm.drones[0]?.id });
+                          if (!isExpanded) toggleSwarmExpand(swarm.id, true);
+                          setAutoTrack(true);
+                        },
+                        dblclick: (e) => {
+                          if (e?.originalEvent) {
+                            L.DomEvent.stop(e.originalEvent);
+                          }
+                          registerSelectionInteraction();
+                          toggleSwarmExpand(swarm.id);
+                        }
+                      }}
                     />
                     {swarm.waypoints.length > 0 && (
                       <Polyline 
@@ -938,8 +1158,9 @@ export default function OperatorDefault() {
                     key={`drone-marker-${swarm.id}-${drone.id}`} 
                     drone={drone} 
                     swarmColor={swarm.color} 
-                    isFocused={focusDrone?.droneId === drone.id} 
-                    forcePopupTime={focusDrone?.droneId === drone.id ? focusDrone?.forcePopup : null}
+                    isFocused={normalizedFocusDrone?.droneId === drone.id} 
+                    forcePopupTime={normalizedFocusDrone?.droneId === drone.id ? normalizedFocusDrone?.forcePopup : null}
+                    registerSelectionInteraction={registerSelectionInteraction}
                     onFocus={() => {
                         setFocusDrone({ swarmId: swarm.id, droneId: drone.id, forcePopup: null });
                         if (!isExpanded) toggleSwarmExpand(swarm.id, true);
@@ -955,9 +1176,9 @@ export default function OperatorDefault() {
                     key={`drone-marker-indy-${drone.id}`} 
                     drone={drone} 
                     swarmColor={"#ffcc00"} 
-                    isIndependent={true}
-                    isFocused={focusDrone?.droneId === drone.id} 
-                    forcePopupTime={focusDrone?.droneId === drone.id ? focusDrone?.forcePopup : null}
+                    isFocused={normalizedFocusDrone?.droneId === drone.id} 
+                    forcePopupTime={normalizedFocusDrone?.droneId === drone.id ? normalizedFocusDrone?.forcePopup : null}
+                    registerSelectionInteraction={registerSelectionInteraction}
                     onFocus={() => {
                         setFocusDrone({ swarmId: null, droneId: drone.id, forcePopup: null });
                         setAutoTrack(true);
@@ -1048,7 +1269,7 @@ export default function OperatorDefault() {
                   filter = "sepia(1) hue-rotate(90deg) brightness(1.2) contrast(1.2)";
                   modeLabel = "NV_NIGHT";
                 }
-                const isFocusedFeed = focusDrone?.droneId === d.id;
+                const isFocusedFeed = normalizedFocusDrone?.droneId === d.id;
 
                  return (
                    <div 
@@ -1153,7 +1374,7 @@ export default function OperatorDefault() {
                     <div className="flex-column" style={{ background: 'rgba(0,0,0,0.6)', padding: '10px', borderLeft: '3px solid var(--cyan-primary)' }}>
                        <span className="mono text-main">LAT: {enlargedFeed.lat.toFixed(6)}</span>
                        <span className="mono text-main">LNG: {enlargedFeed.lng.toFixed(6)}</span>
-                       <span className="mono text-main">ALT: {enlargedFeed.alt?.toFixed(0) || 120}m</span>
+                       <span className="mono text-main">ALT: {formatAltitude(enlargedFeed.alt ?? 120)}</span>
                     </div>
                     <div className="flex-column" style={{ alignItems: 'flex-end' }}>
                        <span className="display text-orange" style={{ fontSize: '32px' }}>{enlargedFeed.pwr.toFixed(1)}%</span>

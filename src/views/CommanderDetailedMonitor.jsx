@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMission } from '../context/MissionContext';
 
 export default function CommanderDetailedMonitor() {
-  const { setActiveScreen, setTacticalPhase, telemetry } = useMission();
+  const { setActiveScreen, setTacticalPhase, telemetry, formatSpeed } = useMission();
   const [countdown, setCountdown] = useState(15);
   const [log, setLog] = useState([
     "22:38:12 FINAL_APPROACH_INITIATED.",
@@ -45,7 +45,7 @@ export default function CommanderDetailedMonitor() {
               <div key={s.id} className="glass-panel" style={{ padding: '16px', borderLeft: `2px solid ${s.color}` }}>
                  <div className="flex-between" style={{ marginBottom: '8px' }}>
                     <span className="mono" style={{ color: s.color }}>SWARM_{s.id}</span>
-                    <span className="mono text-main" style={{ fontSize: '10px' }}>{s.speed.toFixed(0)} KTS</span>
+                    <span className="mono text-main" style={{ fontSize: '10px' }}>{formatSpeed(s.speed)}</span>
                  </div>
                  <div style={{ height: '2px', background: 'rgba(255,255,255,0.05)' }}>
                     <div style={{ width: `${(countdown/15)*100}%`, height: '100%', background: s.color, transition: 'width 1s linear' }}></div>

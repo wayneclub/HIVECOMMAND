@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMission } from '../context/MissionContext';
 
 export default function OperatorAttackMonitor() {
-  const { telemetry, setActiveScreen } = useMission();
+  const { telemetry, setActiveScreen, formatDistance } = useMission();
   const [log, setLog] = useState([
     "22:42:01 SYSTEM INITIALIZED",
     "OPERATOR_ID: IND_1 // AUTH: VERIFIED",
@@ -42,7 +42,7 @@ export default function OperatorAttackMonitor() {
              <div key={s.id} className="glass-panel" style={{ padding: '16px', borderLeft: `2px solid ${s.color}` }}>
                 <div className="flex-between" style={{ marginBottom: '8px' }}>
                    <span className="mono" style={{ color: s.color, fontWeight: 'bold' }}>SWARM_{s.id}</span>
-                   <span className="mono text-cyan" style={{ fontSize: '10px' }}>{s.dist.toFixed(1)}KM</span>
+                   <span className="mono text-cyan" style={{ fontSize: '10px' }}>{formatDistance((s.dist || 0) * 1000, { decimals: 1 })}</span>
                 </div>
                 <div className="flex-between">
                    <span className="mono text-muted" style={{ fontSize: '8px' }}>PWR</span>

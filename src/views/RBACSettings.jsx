@@ -2,7 +2,20 @@ import React from 'react';
 import { useMission } from '../context/MissionContext';
 
 export default function RBACSettings() {
-  const { setRole, setActiveScreen, LOCATIONS, globalMapCenter, changeGlobalLocation } = useMission();
+  const {
+    setRole,
+    setActiveScreen,
+    LOCATIONS,
+    globalMapCenter,
+    changeGlobalLocation,
+    unitSystem,
+    setUnitSystem,
+    formatAltitude,
+    formatDistance,
+    formatSpeed,
+    formatTemperature,
+    formatVisibility
+  } = useMission();
 
   const handleRoleChange = (roleName) => {
     if (roleName === 'BRIGADE COMMANDER') {
@@ -14,8 +27,8 @@ export default function RBACSettings() {
     }
   };
 
-  const Toggle = ({ active }) => (
-    <div style={{ width: '40px', height: '20px', background: active ? 'var(--cyan-primary)' : 'var(--bg-dark)', border: '1px solid ' + (active ? 'var(--cyan-primary)' : 'var(--border-color)'), borderRadius: '10px', position: 'relative', cursor: 'pointer' }}>
+  const Toggle = ({ active, onClick }) => (
+    <div onClick={onClick} style={{ width: '40px', height: '20px', background: active ? 'var(--cyan-primary)' : 'var(--bg-dark)', border: '1px solid ' + (active ? 'var(--cyan-primary)' : 'var(--border-color)'), borderRadius: '10px', position: 'relative', cursor: 'pointer' }}>
        <div style={{ position: 'absolute', top: '2px', left: active ? '22px' : '2px', width: '14px', height: '14px', borderRadius: '50%', background: active ? '#000' : 'var(--text-muted)', transition: 'left 0.2s' }}></div>
     </div>
   );
@@ -107,6 +120,47 @@ export default function RBACSettings() {
                    {locKey}
                  </button>
                ))}
+            </div>
+         </div>
+
+         <div style={{ marginTop: '32px' }}>
+            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>UNIT SYSTEM</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              {[
+                { id: 'metric', label: 'METRIC', desc: 'm / km / kph / celsius' },
+                { id: 'imperial', label: 'IMPERIAL', desc: 'ft / mi / mph / fahrenheit' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => setUnitSystem(option.id)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    background: unitSystem === option.id ? 'rgba(0,229,255,0.08)' : 'var(--bg-dark)',
+                    border: `1px solid ${unitSystem === option.id ? 'var(--cyan-primary)' : 'var(--border-color)'}`,
+                    color: unitSystem === option.id ? 'var(--cyan-primary)' : 'var(--text-main)'
+                  }}
+                >
+                  <div className="mono" style={{ fontSize: '12px', fontWeight: 'bold' }}>{option.label}</div>
+                  <div className="mono text-muted" style={{ fontSize: '9px', marginTop: '6px', textTransform: 'uppercase' }}>{option.desc}</div>
+                </button>
+              ))}
+            </div>
+            <div className="glass-panel" style={{ marginTop: '16px', padding: '16px' }}>
+              <div className="mono text-cyan" style={{ fontSize: '10px', marginBottom: '12px' }}>LIVE PREVIEW</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: '10px', columnGap: '12px' }}>
+                <span className="mono text-muted" style={{ fontSize: '9px' }}>ALTITUDE</span>
+                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatAltitude(250)}</span>
+                <span className="mono text-muted" style={{ fontSize: '9px' }}>DISTANCE</span>
+                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatDistance(4200)}</span>
+                <span className="mono text-muted" style={{ fontSize: '9px' }}>GROUND SPEED</span>
+                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatSpeed(80)}</span>
+                <span className="mono text-muted" style={{ fontSize: '9px' }}>VISIBILITY</span>
+                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatVisibility(10)}</span>
+                <span className="mono text-muted" style={{ fontSize: '9px' }}>TEMPERATURE</span>
+                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatTemperature(24)}</span>
+              </div>
             </div>
          </div>
 
