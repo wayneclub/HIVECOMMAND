@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import { useMission } from '../context/MissionContext';
 import L from 'leaflet';
@@ -36,12 +36,32 @@ const cardStyle = {
 };
 
 const sectionTitleStyle = {
-  fontSize: '10px',
+  fontSize: '11px',
   letterSpacing: '0.12em',
   color: 'var(--cyan-primary)'
 };
 
 const formatMissionLabel = (label, fallback = 'UNKNOWN TARGET') => String(label || fallback).replace(/_/g, ' ').toUpperCase();
+const shouldReverseLookupTargetName = (label) => {
+  if (!label) return true;
+  return /UNKNOWN|MULTIPOINT|MANUAL_PATH|FINAL_APPROACH|WAYPOINT/i.test(String(label));
+};
+const pickReverseLookupName = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const address = payload.address || {};
+  return (
+    payload.name ||
+    address.amenity ||
+    address.building ||
+    address.attraction ||
+    address.university ||
+    address.school ||
+    address.office ||
+    address.road ||
+    payload.display_name?.split(',')[0] ||
+    null
+  );
+};
 
 function reviewWaypointIcon(index, color) {
   return new L.DivIcon({
@@ -86,6 +106,7 @@ export default function AIParsedReview() {
     formatTemperature,
     formatWind
   } = useMission();
+  const [resolvedTargetName, setResolvedTargetName] = useState('');
 
   if (!lastAIParsedCommand) {
     return (
@@ -165,6 +186,41 @@ export default function AIParsedReview() {
   const totalDistanceMeters = Number.isFinite(Number(lastAIParsedCommand.distanceMeters))
     ? Number(lastAIParsedCommand.distanceMeters)
     : Number(lastAIParsedCommand.distance || 0) * 1000;
+  const targetWeather = lastAIParsedCommand.missionWeather;
+  const targetDisplayName = resolvedTargetName || formatMissionLabel(lastAIParsedCommand.destName, 'FINAL APPROACH');
+
+  useEffect(() => {
+    const destination = lastAIParsedCommand?.destination;
+    if (!destination?.lat || !destination?.lng) {
+      setResolvedTargetName('');
+      return;
+    }
+
+    if (!shouldReverseLookupTargetName(lastAIParsedCommand?.destName)) {
+      setResolvedTargetName('');
+      return;
+    }
+
+    const controller = new AbortController();
+    const reverseUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${destination.lat}&lon=${destination.lng}&zoom=18&addressdetails=1`;
+
+    fetch(reverseUrl, {
+      signal: controller.signal,
+      headers: {
+        Accept: 'application/json'
+      }
+    })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        const nextName = pickReverseLookupName(data);
+        setResolvedTargetName(nextName ? formatMissionLabel(nextName) : '');
+      })
+      .catch(() => {
+        setResolvedTargetName('');
+      });
+
+    return () => controller.abort();
+  }, [lastAIParsedCommand?.destination?.lat, lastAIParsedCommand?.destination?.lng, lastAIParsedCommand?.destName]);
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}>
@@ -234,106 +290,121 @@ export default function AIParsedReview() {
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(8, 12, 20, 0.56)', zIndex: 400, pointerEvents: 'none' }} />
       </div>
 
-      <div style={{ position: 'absolute', top: '28px', left: '28px', zIndex: 500, width: '410px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ ...cardStyle, padding: '22px 24px', borderLeft: '4px solid var(--cyan-primary)' }}>
+      <div style={{ position: 'absolute', top: '28px', left: '36px', zIndex: 500, width: '460px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ ...cardStyle, padding: '24px 28px', borderLeft: '4px solid var(--cyan-primary)' }}>
           <div className="mono" style={sectionTitleStyle}>MISSION PLAN REVIEW</div>
-          <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div className="display text-main" style={{ fontSize: '15px', letterSpacing: '0.08em' }}>OBJECTIVE</div>
-            <div className="display" style={{ fontSize: '30px', color: 'var(--cyan-primary)', lineHeight: 1.05 }}>
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="display text-main" style={{ fontSize: '16px', letterSpacing: '0.08em' }}>OBJECTIVE</div>
+            <div className="display" style={{ fontSize: '42px', color: 'var(--cyan-primary)', lineHeight: 1.02 }}>
               {lastAIParsedCommand.intent}
             </div>
-            <div className="mono text-muted" style={{ fontSize: '10px', lineHeight: 1.6 }}>
+            <div className="mono text-muted" style={{ fontSize: '11px', lineHeight: 1.7 }}>
               SOURCE // {lastAIParsedCommand.raw === 'MANUAL_TACTICAL_PLAN' ? 'MANUAL_OPERATOR_INPUT' : 'NEURAL_VOICE_CAPTURE'}
             </div>
           </div>
         </div>
 
         {lastAIParsedCommand.destination && (
-          <div style={{ ...cardStyle, padding: '20px 24px' }}>
+          <div style={{ ...cardStyle, padding: '24px 28px' }}>
             <div className="mono" style={sectionTitleStyle}>TARGET SOLUTION</div>
-            <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div className="display text-main" style={{ fontSize: '18px', letterSpacing: '0.06em' }}>
-                {formatMissionLabel(lastAIParsedCommand.destName, 'FINAL APPROACH')}
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="display text-main" style={{ fontSize: '20px', letterSpacing: '0.05em', lineHeight: 1.2 }}>
+                {targetDisplayName}
+              </div>
+              <div className="mono text-muted" style={{ fontSize: '11px', lineHeight: 1.6 }}>
+                {resolvedTargetName ? 'TARGET RESOLVED FROM GEOCOORDINATES' : 'PRIMARY TARGET DESIGNATION'}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>LATITUDE</div>
-                  <div className="mono text-main" style={{ fontSize: '13px' }}>{Number(lastAIParsedCommand.destination.lat).toFixed(6)}</div>
+                <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="mono text-muted" style={{ fontSize: '10px', marginBottom: '6px' }}>LATITUDE</div>
+                  <div className="mono text-main" style={{ fontSize: '16px' }}>{Number(lastAIParsedCommand.destination.lat).toFixed(6)}</div>
                 </div>
-                <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>LONGITUDE</div>
-                  <div className="mono text-main" style={{ fontSize: '13px' }}>{Number(lastAIParsedCommand.destination.lng).toFixed(6)}</div>
+                <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="mono text-muted" style={{ fontSize: '10px', marginBottom: '6px' }}>LONGITUDE</div>
+                  <div className="mono text-main" style={{ fontSize: '16px' }}>{Number(lastAIParsedCommand.destination.lng).toFixed(6)}</div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        <div style={{ ...cardStyle, padding: '20px 24px' }}>
+        <div style={{ ...cardStyle, padding: '24px 28px' }}>
           <div className="mono" style={sectionTitleStyle}>WAYPOINT MANIFEST</div>
-          <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '12px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="mono text-muted" style={{ fontSize: '9px' }}>PNT</span>
-            <span className="mono text-muted" style={{ fontSize: '9px' }}>DISTANCE</span>
-            <span className="mono text-muted" style={{ fontSize: '9px', textAlign: 'right' }}>EST_ETA</span>
+          <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="mono text-muted" style={{ fontSize: '10px' }}>PNT</span>
+            <span className="mono text-muted" style={{ fontSize: '10px' }}>DISTANCE</span>
+            <span className="mono text-muted" style={{ fontSize: '10px', textAlign: 'right' }}>EST_ETA</span>
           </div>
-          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {manifestRows.map((wp, i) => (
               <div
                 key={wp.id || `${wp.label}-${i}`}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.5fr 1fr 1fr',
+                  gridTemplateColumns: '1.7fr 1fr 1fr',
                   gap: '12px',
                   alignItems: 'center',
-                  padding: '12px 0',
+                  padding: '14px 0',
                   borderBottom: i === manifestRows.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '20px', height: '20px', borderRadius: '999px', border: '1px solid var(--cyan-primary)', color: 'var(--cyan-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '999px', border: '1px solid var(--cyan-primary)', color: 'var(--cyan-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
                     {i + 1}
                   </div>
-                  <span className="mono text-main" style={{ fontSize: '10px' }}>{formatMissionLabel(wp.label, `WAYPOINT ${i + 1}`)}</span>
+                  <span className="mono text-main" style={{ fontSize: '12px' }}>{formatMissionLabel(wp.label, `WAYPOINT ${i + 1}`)}</span>
                 </div>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
-                <span className="mono text-cyan" style={{ fontSize: '10px', textAlign: 'right', fontWeight: 'bold' }}>{wp.eta}</span>
+                <span className="mono text-main" style={{ fontSize: '11px' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
+                <span className="mono text-cyan" style={{ fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>{wp.eta}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div style={{ position: 'absolute', top: '28px', right: '28px', zIndex: 500, width: '340px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        <div style={{ ...cardStyle, padding: '22px 24px' }}>
+      <div style={{ position: 'absolute', top: '28px', right: '36px', zIndex: 500, width: '380px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ ...cardStyle, padding: '24px 28px' }}>
           <div className="mono" style={sectionTitleStyle}>TACTICAL METRICS</div>
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px' }}>
-              <span className="mono text-muted" style={{ fontSize: '10px' }}>ASSET</span>
-              <span className="mono text-main" style={{ fontSize: '11px' }}>{assignedAssetLabel}</span>
-              <span className="mono text-muted" style={{ fontSize: '10px' }}>TOTAL_DIST</span>
-              <span className="mono text-cyan" style={{ fontSize: '11px' }}>{formatDistance(totalDistanceMeters)}</span>
-              <span className="mono text-muted" style={{ fontSize: '10px' }}>AVG_GS</span>
-              <span className="mono text-main" style={{ fontSize: '11px' }}>{formatSpeed(lastAIParsedCommand.predictedGS)}</span>
+              <span className="mono text-muted" style={{ fontSize: '11px' }}>ASSET</span>
+              <span className="mono text-main" style={{ fontSize: '13px' }}>{assignedAssetLabel}</span>
+              <span className="mono text-muted" style={{ fontSize: '11px' }}>TOTAL_DIST</span>
+              <span className="mono text-cyan" style={{ fontSize: '13px' }}>{formatDistance(totalDistanceMeters)}</span>
+              <span className="mono text-muted" style={{ fontSize: '11px' }}>AVG_GS</span>
+              <span className="mono text-main" style={{ fontSize: '13px' }}>{formatSpeed(lastAIParsedCommand.predictedGS)}</span>
             </div>
 
             <div style={{ paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-              <span className="mono text-muted" style={{ fontSize: '10px' }}>FINAL_ETA</span>
-              <span className="display text-cyan" style={{ fontSize: '28px', lineHeight: 1 }}>{lastAIParsedCommand.eta}</span>
+              <span className="mono text-muted" style={{ fontSize: '11px' }}>FINAL_ETA</span>
+              <span className="display text-cyan" style={{ fontSize: '34px', lineHeight: 1 }}>{lastAIParsedCommand.eta}</span>
             </div>
           </div>
         </div>
 
-        <div style={{ ...cardStyle, padding: '22px 24px', background: 'rgba(16, 26, 40, 0.92)' }}>
-          <div className="mono" style={sectionTitleStyle}>ENVIRONMENTAL DATA</div>
-          <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr auto', rowGap: '12px', columnGap: '12px' }}>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>CONDITION</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{lastAIParsedCommand.missionWeather.condition}</span>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>WIND</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{formatWind(lastAIParsedCommand.missionWeather)}</span>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>VISIBILITY</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{formatVisibility(lastAIParsedCommand.missionWeather.visibilityKm ?? Number(String(lastAIParsedCommand.missionWeather.vis || '0').replace(/[^\d.]/g, '')))}</span>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>TEMP</span>
-            <span className="mono text-main" style={{ fontSize: '10px' }}>{formatTemperature(lastAIParsedCommand.missionWeather.tempC ?? Number(String(lastAIParsedCommand.missionWeather.temp || '0').replace(/[^\d.]/g, '')))}</span>
+        <div style={{ ...cardStyle, padding: '24px 28px', background: 'rgba(16, 26, 40, 0.92)' }}>
+          <div className="mono" style={sectionTitleStyle}>TARGET AREA WEATHER</div>
+          <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: '1fr auto', rowGap: '14px', columnGap: '14px' }}>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>CONDITION</span>
+            <span className="mono text-main" style={{ fontSize: '13px' }}>{targetWeather.condition}</span>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>WIND</span>
+            <span className="mono text-main" style={{ fontSize: '13px' }}>{formatWind(targetWeather)}</span>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>VISIBILITY</span>
+            <span className="mono text-main" style={{ fontSize: '13px' }}>{formatVisibility(targetWeather.visibilityKm ?? Number(String(targetWeather.vis || '0').replace(/[^\d.]/g, '')))}</span>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>TEMP</span>
+            <span className="mono text-main" style={{ fontSize: '13px' }}>{formatTemperature(targetWeather.tempC ?? Number(String(targetWeather.temp || '0').replace(/[^\d.]/g, '')))}</span>
+          </div>
+        </div>
+
+        <div style={{ ...cardStyle, padding: '24px 28px', background: 'rgba(12, 20, 34, 0.92)' }}>
+          <div className="mono" style={sectionTitleStyle}>TARGET SUMMARY</div>
+          <div style={{ marginTop: '18px', display: 'grid', gridTemplateColumns: '1fr auto', rowGap: '14px', columnGap: '14px' }}>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>TARGET_NAME</span>
+            <span className="mono text-main" style={{ fontSize: '13px', textAlign: 'right' }}>{targetDisplayName}</span>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>TARGET_LAT</span>
+            <span className="mono text-main" style={{ fontSize: '13px' }}>{Number(lastAIParsedCommand.destination?.lat || 0).toFixed(6)}</span>
+            <span className="mono text-muted" style={{ fontSize: '11px' }}>TARGET_LNG</span>
+            <span className="mono text-main" style={{ fontSize: '13px' }}>{Number(lastAIParsedCommand.destination?.lng || 0).toFixed(6)}</span>
           </div>
         </div>
       </div>
