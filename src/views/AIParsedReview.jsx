@@ -41,6 +41,8 @@ const sectionTitleStyle = {
   color: 'var(--cyan-primary)'
 };
 
+const formatMissionLabel = (label, fallback = 'UNKNOWN TARGET') => String(label || fallback).replace(/_/g, ' ').toUpperCase();
+
 function reviewWaypointIcon(index, color) {
   return new L.DivIcon({
     className: '',
@@ -76,6 +78,7 @@ export default function AIParsedReview() {
     addWaypointToSwarm,
     addWaypointToDrone,
     addMissionToHistory,
+    updateMissionHistoryStatus,
     clearSwarmWaypoints,
     formatDistance,
     formatSpeed,
@@ -98,6 +101,7 @@ export default function AIParsedReview() {
 
     if (lastAIParsedCommand.intent === 'ABORT_MOTION') {
       clearSwarmWaypoints(lastAIParsedCommand.swarmId);
+      updateMissionHistoryStatus('ABORTED');
       setTacticalPhase('IDLE');
       setActiveScreen(1);
       return;
@@ -128,7 +132,7 @@ export default function AIParsedReview() {
   const pathWaypoints = lastAIParsedCommand.waypoints || [];
 
   const assetColor = swarm ? swarm.color : '#ffcc00'; // Amber for unassigned drones
-  const fallbackCenter = [swarm?.baseLat || drone?.lat || 34.0224, swarm?.baseLng || drone?.lng || -118.2851];
+  const fallbackCenter = [swarm?.baseLat || drone?.lat || 34.0206925, swarm?.baseLng || drone?.lng || -118.2895045];
   const originPosition = swarm ? [swarm.baseLat, swarm.baseLng] : drone ? [drone.lat, drone.lng] : null;
 
   const mapPositions = useMemo(() => {
@@ -144,13 +148,13 @@ export default function AIParsedReview() {
   const manifestRows = (lastAIParsedCommand.waypoints || [
     {
       ...lastAIParsedCommand.destination,
-      label: 'FINAL_APPROACH',
+      label: lastAIParsedCommand.destName || 'FINAL_APPROACH',
       distance: lastAIParsedCommand.distance,
       eta: lastAIParsedCommand.eta
     }
   ]).map((wp, index) => ({
     ...wp,
-    label: wp.label || `WAYPOINT_${index + 1}`,
+    label: wp.label || lastAIParsedCommand.destName || `WAYPOINT_${index + 1}`,
     distance: wp.distance || lastAIParsedCommand.distance,
     eta: wp.eta || lastAIParsedCommand.eta
   }));
@@ -244,6 +248,27 @@ export default function AIParsedReview() {
           </div>
         </div>
 
+        {lastAIParsedCommand.destination && (
+          <div style={{ ...cardStyle, padding: '20px 24px' }}>
+            <div className="mono" style={sectionTitleStyle}>TARGET SOLUTION</div>
+            <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="display text-main" style={{ fontSize: '18px', letterSpacing: '0.06em' }}>
+                {formatMissionLabel(lastAIParsedCommand.destName, 'FINAL APPROACH')}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>LATITUDE</div>
+                  <div className="mono text-main" style={{ fontSize: '13px' }}>{Number(lastAIParsedCommand.destination.lat).toFixed(6)}</div>
+                </div>
+                <div style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>LONGITUDE</div>
+                  <div className="mono text-main" style={{ fontSize: '13px' }}>{Number(lastAIParsedCommand.destination.lng).toFixed(6)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ ...cardStyle, padding: '20px 24px' }}>
           <div className="mono" style={sectionTitleStyle}>WAYPOINT MANIFEST</div>
           <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '12px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -268,7 +293,7 @@ export default function AIParsedReview() {
                   <div style={{ width: '20px', height: '20px', borderRadius: '999px', border: '1px solid var(--cyan-primary)', color: 'var(--cyan-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
                     {i + 1}
                   </div>
-                  <span className="mono text-main" style={{ fontSize: '10px' }}>{wp.label}</span>
+                  <span className="mono text-main" style={{ fontSize: '10px' }}>{formatMissionLabel(wp.label, `WAYPOINT ${i + 1}`)}</span>
                 </div>
                 <span className="mono text-main" style={{ fontSize: '10px' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
                 <span className="mono text-cyan" style={{ fontSize: '10px', textAlign: 'right', fontWeight: 'bold' }}>{wp.eta}</span>

@@ -6,14 +6,23 @@ const FEET_PER_METER = 3.28084;
 const MILES_PER_KM = 0.621371;
 const MPH_PER_KPH = 0.621371;
 const KPH_PER_KNOT = 1.852;
-const SWARM_CRUISE_MPS = 16;
-const DRONE_CRUISE_MPS = 18;
-const FORMATION_FOLLOW_MPS = 7;
-const FORMATION_JOIN_MPS = 12;
-const SWARM_CLIMB_MPS = 3.5;
+const SWARM_CRUISE_MPS = 40;
+const DRONE_CRUISE_MPS = 40;
+const FORMATION_FOLLOW_MPS = 24;
+const FORMATION_JOIN_MPS = 32;
+const SWARM_CLIMB_MPS = 12;
 const SWARM_DESCENT_MPS = 2.5;
-const DRONE_CLIMB_MPS = 4.5;
+const DRONE_CLIMB_MPS = 12;
 const DRONE_DESCENT_MPS = 3.2;
+const DEFAULT_MISSION_TAKEOFF_ALT = 120;
+const MIN_HORIZONTAL_MOTION_ALT = 12;
+const HORIZONTAL_MOTION_ALT_RATIO = 0.82;
+const DEFAULT_OPERATOR_NAME = 'Operator Indiana 1';
+const DEFAULT_COMMANDER_NAME = 'Commander Indiana 6';
+const USC_VITERBI_LAT = 34.0206925;
+const USC_VITERBI_LNG = -118.2895045;
+const LEAVEY_LIBRARY_LAT = 34.0217725;
+const LEAVEY_LIBRARY_LNG = -118.2828810;
 const formatSystemTime = (date = new Date()) =>
   date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
@@ -57,6 +66,19 @@ const easeAltitude = (currentAlt, targetAlt, deltaSeconds, climbRateMps = SWARM_
   const step = Math.min(Math.abs(delta), maxStep);
   return current + Math.sign(delta) * step;
 };
+const canMoveAtAltitude = (currentAlt, targetAlt) => clampAltitude(targetAlt ?? currentAlt) > 0;
+const canTranslateAtAltitude = (currentAlt, targetAlt) => (
+  canMoveAtAltitude(currentAlt, targetAlt) && (() => {
+    const current = Number(currentAlt ?? 0);
+    const target = clampAltitude(targetAlt ?? currentAlt);
+    const requiredAltitude = Math.max(MIN_HORIZONTAL_MOTION_ALT, target * HORIZONTAL_MOTION_ALT_RATIO);
+    return current >= requiredAltitude;
+  })()
+);
+const resolveMissionTakeoffAltitude = (currentTargetAlt, fallbackAlt = DEFAULT_MISSION_TAKEOFF_ALT) => {
+  const clampedCurrent = clampAltitude(currentTargetAlt);
+  return clampedCurrent > 0 ? clampedCurrent : fallbackAlt;
+};
 const getFormationPosition = (baseLat, baseLng, droneIndex, droneCount) => {
   const count = Math.max(1, droneCount);
   const angle = (Math.PI * 2 / count) * droneIndex;
@@ -95,6 +117,36 @@ const moveTowardCoordinates = (lat, lng, targetLat, targetLng, maxDistanceMeters
     remainingMeters: distanceMeters - maxDistanceMeters
   };
 };
+const formatElapsedDuration = (elapsedSeconds) => {
+  const hours = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
+  const minutes = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
+  const seconds = String(elapsedSeconds % 60).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+};
+const getSwarmTrackPoint = (swarm) => {
+  if (!swarm) return null;
+  if (swarm.drones?.length) {
+    return {
+      lat: swarm.drones.reduce((sum, drone) => sum + drone.lat, 0) / swarm.drones.length,
+      lng: swarm.drones.reduce((sum, drone) => sum + drone.lng, 0) / swarm.drones.length,
+      alt: swarm.alt ?? 0,
+      speed: swarm.speed ?? 0
+    };
+  }
+  return { lat: swarm.baseLat, lng: swarm.baseLng, alt: swarm.alt ?? 0, speed: swarm.speed ?? 0 };
+};
+const getMissionTrackPoint = (mission, telemetry) => {
+  if (!mission) return null;
+  if (mission.targetDroneId) {
+    const ownerSwarm = telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === mission.targetDroneId));
+    const swarmDrone = ownerSwarm?.drones?.find((drone) => drone.id === mission.targetDroneId);
+    const independentDrone = telemetry.unassignedDrones?.find((drone) => drone.id === mission.targetDroneId);
+    const drone = swarmDrone || independentDrone;
+    return drone ? { lat: drone.lat, lng: drone.lng, alt: drone.alt ?? 0, speed: drone.speed ?? 0 } : null;
+  }
+  const swarm = telemetry.swarms.find((item) => item.id === mission.swarmId);
+  return getSwarmTrackPoint(swarm);
+};
 
 export function useMission() {
   return useContext(MissionContext);
@@ -132,14 +184,15 @@ export function MissionProvider({ children }) {
   };
 
   const LOCATIONS = {
-    "taipei 101": { lat: 25.03397, lng: 121.56441 },
-    "kaohsiung harbor": { lat: 22.6100, lng: 120.2750 },
-    "sun moon lake": { lat: 23.8600, lng: 120.9100 },
-    "costco hsinchu": { lat: 24.7865, lng: 121.0255 },
-    "hsinchu science park": { lat: 24.7783, lng: 121.0163 },
-    "hq": { lat: 34.0224, lng: -118.2851 },
-    "base": { lat: 34.0224, lng: -118.2851 },
-    "station (USC)": { lat: 34.0224, lng: -118.2851 }
+    "usc command": { lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG },
+    "downtown los angeles": { lat: 34.0522, lng: -118.2437 },
+    "lax": { lat: 33.9416, lng: -118.4085 },
+    "long beach harbor": { lat: 33.7542, lng: -118.2167 },
+    "san diego bay": { lat: 32.6907, lng: -117.1780 },
+    "las vegas strip": { lat: 36.1147, lng: -115.1728 },
+    "hq": { lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG },
+    "base": { lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG },
+    "station (USC)": { lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG }
   };
 
   const [globalMapCenter, setGlobalMapCenter] = useState([LOCATIONS["station (USC)"].lat, LOCATIONS["station (USC)"].lng]);
@@ -231,10 +284,14 @@ export function MissionProvider({ children }) {
              ...s,
              baseLat: newBaseLat,
              baseLng: newBaseLng,
+             homeBaseLat: newBaseLat,
+             homeBaseLng: newBaseLng,
              drones: s.drones.map((d, dIdx) => ({
                 ...d,
                 lat: newBaseLat + (dIdx * 0.0005),
-                lng: newBaseLng + (dIdx * 0.0005)
+                lng: newBaseLng + (dIdx * 0.0005),
+                homeLat: newBaseLat + (dIdx * 0.0005),
+                homeLng: newBaseLng + (dIdx * 0.0005)
              }))
            };
         });
@@ -247,14 +304,31 @@ export function MissionProvider({ children }) {
   // Global telemetry mockup
   const [telemetry, setTelemetry] = useState({
     swarms: [
-      // Swarm 1 - Green (Friendly)
-      { id: '01', status: 'IDLE', pwr: 98.4, role: 'RECON_MODE', color: '#39ff14', alt: 120, targetAlt: 120, dist: 0, speed: 0, baseLat: 34.0230, baseLng: -118.2840, waypoints: [], drones: [{id: 'ALPHA', pwr: 99, alt: 120, targetAlt: 120, lat: 34.0235, lng: -118.2838, waypoints: []}, {id: 'BETA', pwr: 98, alt: 120, targetAlt: 120, lat: 34.0228, lng: -118.2845, waypoints: []}, {id: 'GAMMA', pwr: 98, alt: 120, targetAlt: 120, lat: 34.0226, lng: -118.2835, waypoints: []}, {id: 'DELTA', pwr: 98, alt: 120, targetAlt: 120, lat: 34.0232, lng: -118.2832, waypoints: []}] },
-      // Swarm 2 - Cyan/Blue (Friendly - alternate)
-      { id: '02', status: 'IDLE', pwr: 74.1, role: 'TRANSIT_MODE', color: '#00ccff', alt: 250, targetAlt: 250, dist: 0, speed: 0, baseLat: 34.0200, baseLng: -118.2870, waypoints: [], drones: [{id: 'ECHO', pwr: 75, alt: 250, targetAlt: 250, lat: 34.0202, lng: -118.2865, waypoints: []}, {id: 'FOXTROT', pwr: 74, alt: 250, targetAlt: 250, lat: 34.0198, lng: -118.2872, waypoints: []}, {id: 'GOLF', pwr: 73, alt: 250, targetAlt: 250, lat: 34.0200, lng: -118.2875, waypoints: []}] },
+      {
+        id: '01',
+        status: 'IDLE',
+        pwr: 96.8,
+        role: 'RECON_MODE',
+        color: '#39ff14',
+        alt: 0,
+        targetAlt: 0,
+        dist: 0,
+        speed: 0,
+        baseLat: USC_VITERBI_LAT,
+        baseLng: USC_VITERBI_LNG,
+        homeBaseLat: USC_VITERBI_LAT,
+        homeBaseLng: USC_VITERBI_LNG,
+        waypoints: [],
+        drones: [
+          { id: '01', pwr: 99, alt: 0, targetAlt: 0, lat: 34.0210925, lng: -118.2893045, homeLat: 34.0210925, homeLng: -118.2893045, waypoints: [] },
+          { id: '02', pwr: 98, alt: 0, targetAlt: 0, lat: 34.0204925, lng: -118.2899045, homeLat: 34.0204925, homeLng: -118.2899045, waypoints: [] },
+          { id: '03', pwr: 97, alt: 0, targetAlt: 0, lat: 34.0202925, lng: -118.2890045, homeLat: 34.0202925, homeLng: -118.2890045, waypoints: [] },
+          { id: '04', pwr: 96, alt: 0, targetAlt: 0, lat: 34.0208925, lng: -118.2888045, homeLat: 34.0208925, homeLng: -118.2888045, waypoints: [] }
+        ]
+      },
     ],
     unassignedDrones: [
-      { id: 'INDY_01', pwr: 92, alt: 150, targetAlt: 150, lat: 34.0250, lng: -118.2810, waypoints: [] },
-      { id: 'INDY_02', pwr: 88, alt: 200, targetAlt: 200, lat: 34.0210, lng: -118.2890, waypoints: [] }
+      { id: '05', pwr: 92, alt: 150, targetAlt: 150, lat: 34.0215925, lng: -118.2883045, homeLat: 34.0215925, homeLng: -118.2883045, waypoints: [] }
     ]
   });
 
@@ -285,12 +359,14 @@ export function MissionProvider({ children }) {
       targetAlt: 300,
       dist: 0,
       speed: 0,
-      baseLat: config.lat || 34.0224,
-      baseLng: config.lng || -118.2851,
+      baseLat: config.lat || USC_VITERBI_LAT,
+      baseLng: config.lng || USC_VITERBI_LNG,
+      homeBaseLat: config.lat || USC_VITERBI_LAT,
+      homeBaseLng: config.lng || USC_VITERBI_LNG,
       waypoints: [],
       drones: [
-        { id: 'D1', pwr: 100, alt: 300, targetAlt: 300, lat: 34.0224, lng: -118.2851, waypoints: [] },
-        { id: 'D2', pwr: 100, alt: 300, targetAlt: 300, lat: 34.0225, lng: -118.2852, waypoints: [] }
+        { id: 'D1', pwr: 100, alt: 300, targetAlt: 300, lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG, homeLat: USC_VITERBI_LAT, homeLng: USC_VITERBI_LNG, waypoints: [] },
+        { id: 'D2', pwr: 100, alt: 300, targetAlt: 300, lat: USC_VITERBI_LAT + 0.0001, lng: USC_VITERBI_LNG - 0.0001, homeLat: USC_VITERBI_LAT + 0.0001, homeLng: USC_VITERBI_LNG - 0.0001, waypoints: [] }
       ]
     };
     setTelemetry(prev => ({ ...prev, swarms: [...prev.swarms, newSwarm] }));
@@ -316,7 +392,16 @@ export function MissionProvider({ children }) {
       swarms: prev.swarms.map(s => {
         if (s.id === swarmId) {
           const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
-          return { ...s, waypoints: [...s.waypoints, ...formatted] };
+          const missionTakeoffAlt = resolveMissionTakeoffAltitude(s.targetAlt ?? s.alt);
+          return {
+            ...s,
+            targetAlt: missionTakeoffAlt,
+            waypoints: [...s.waypoints, ...formatted],
+            drones: s.drones.map(d => ({
+              ...d,
+              targetAlt: resolveMissionTakeoffAltitude(d.targetAlt ?? d.alt, missionTakeoffAlt)
+            }))
+          };
         }
         return s;
       })
@@ -333,7 +418,12 @@ export function MissionProvider({ children }) {
           swarms: prev.swarms.map(s => {
             if (s.id === swarmId) {
               const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
-              const newDrones = s.drones.map(d => d.id === droneId ? { ...d, waypoints: [...(d.waypoints || []), ...formatted] } : d);
+              const missionTakeoffAlt = resolveMissionTakeoffAltitude(s.targetAlt ?? s.alt);
+              const newDrones = s.drones.map(d => d.id === droneId ? {
+                ...d,
+                targetAlt: resolveMissionTakeoffAltitude(d.targetAlt ?? d.alt, missionTakeoffAlt),
+                waypoints: [...(d.waypoints || []), ...formatted]
+              } : d);
               return { ...s, drones: newDrones };
             }
             return s;
@@ -346,7 +436,11 @@ export function MissionProvider({ children }) {
           unassignedDrones: (prev.unassignedDrones || []).map(d => {
             if (d.id === droneId) {
               const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
-              return { ...d, waypoints: [...(d.waypoints || []), ...formatted] };
+              return {
+                ...d,
+                targetAlt: resolveMissionTakeoffAltitude(d.targetAlt ?? d.alt),
+                waypoints: [...(d.waypoints || []), ...formatted]
+              };
             }
             return d;
           })
@@ -362,25 +456,107 @@ export function MissionProvider({ children }) {
   const [activeVideoFeeds, setActiveVideoFeeds] = useState([]); // Array of { swarmId, droneId }
   const [enlargedFeed, setEnlargedFeed] = useState(null); // { swarmId, droneId } or null
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+  const [currentMissionHistoryId, setCurrentMissionHistoryId] = useState(null);
+  const [historyMissions, setHistoryMissions] = useState([]);
+  const currentMissionHistoryIdRef = useRef(null);
+  const historyTrackSampleRef = useRef({ historyId: null, sampledAt: 0 });
 
-  const [historyMissions, setHistoryMissions] = useState([
-    { id: 'OP-771', name: 'GHOST SHORE', date: '2026-04-12', status: 'SUCCESS', duration: '01:42:33', assets: 12, paths: 22 },
-    { id: 'OP-772', name: 'IRON RECON', date: '2026-04-14', status: 'SUCCESS', duration: '00:55:12', assets: 8, paths: 15 },
-    { id: 'OP-773', name: 'URBAN SWEEP', date: '2026-04-15', status: 'ABORTED', duration: '00:12:05', assets: 15, paths: 4 },
-    { id: 'OP-774', name: 'NIGHT OWL', date: '2026-04-18', status: 'SUCCESS', duration: '03:15:00', assets: 24, paths: 56 },
-  ]);
+  useEffect(() => {
+    currentMissionHistoryIdRef.current = currentMissionHistoryId;
+  }, [currentMissionHistoryId]);
+
+  const addMissionHistoryEvent = (historyId, label, detail, occurredAt = Date.now()) => {
+    if (!historyId) return;
+    setHistoryMissions(prev => prev.map(mission => {
+      if (mission.id !== historyId) return mission;
+      const startedAt = mission.startedAt || occurredAt;
+      const elapsedSeconds = Math.max(0, Math.round((occurredAt - startedAt) / 1000));
+      const nextEvent = {
+        id: `${historyId}-${occurredAt}-${label}`,
+        t: `T+${formatElapsedDuration(elapsedSeconds)}`,
+        label,
+        d: detail,
+        at: occurredAt
+      };
+      return { ...mission, timeline: [...(mission.timeline || []), nextEvent] };
+    }));
+  };
 
   const addMissionToHistory = (mission) => {
+    const historyId = `OP-${Math.floor(Math.random() * 900 + 100)}`;
+    const startedAt = Date.now();
+    const routePoints = mission.waypoints || (mission.destination ? [mission.destination] : []);
+    const originPoint = mission.targetDroneId
+      ? (() => {
+          const ownerSwarm = telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === mission.targetDroneId));
+          const swarmDrone = ownerSwarm?.drones?.find((drone) => drone.id === mission.targetDroneId);
+          const independentDrone = telemetry.unassignedDrones?.find((drone) => drone.id === mission.targetDroneId);
+          const drone = swarmDrone || independentDrone;
+          return drone ? [drone.lat, drone.lng] : [USC_VITERBI_LAT, USC_VITERBI_LNG];
+        })()
+      : (() => {
+          const swarm = telemetry.swarms.find((item) => item.id === mission.swarmId) || telemetry.swarms[0];
+          const point = getSwarmTrackPoint(swarm);
+          return point ? [point.lat, point.lng] : [USC_VITERBI_LAT, USC_VITERBI_LNG];
+        })();
+    const focusPoint = routePoints[routePoints.length - 1] || mission.destination || { lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG };
     const newRecord = {
-      id: `OP-${Math.floor(Math.random() * 900 + 100)}`,
+      id: historyId,
       name: mission.destName || 'UNTITLED_OPS',
       date: new Date().toISOString().split('T')[0],
       status: 'EXECUTING',
-      duration: `--:--`,
-      assets: 4, 
-      paths: mission.waypoints ? mission.waypoints.length : 1
+      duration: '--:--',
+      assets: mission.targetDroneId ? 1 : 4,
+      paths: routePoints.length || 1,
+      operatorName: DEFAULT_OPERATOR_NAME,
+      commanderName: DEFAULT_COMMANDER_NAME,
+      centerLat: focusPoint.lat,
+      centerLng: focusPoint.lng,
+      swarmId: mission.swarmId || null,
+      targetDroneId: mission.targetDroneId || null,
+      plannedRoute: routePoints.map((wp) => [wp.lat, wp.lng]),
+      route: [originPoint, ...routePoints.map((wp) => [wp.lat, wp.lng])],
+      actualRoute: [originPoint],
+      startedAt,
+      endedAt: null,
+      timeline: [
+        {
+          id: `${historyId}-${startedAt}-deploy`,
+          t: 'T+00:00:00',
+          label: 'DEPLOYMENT',
+          d: `Mission launched toward ${(mission.destName || 'assigned target').replace(/_/g, ' ').toUpperCase()}.`,
+          at: startedAt
+        }
+      ]
     };
+    setCurrentMissionHistoryId(historyId);
+    currentMissionHistoryIdRef.current = historyId;
+    historyTrackSampleRef.current = { historyId, sampledAt: startedAt };
     setHistoryMissions(prev => [newRecord, ...prev]);
+    return historyId;
+  };
+
+  const updateMissionHistoryStatus = (status, overrides = {}, historyId = currentMissionHistoryId) => {
+    if (!historyId) return;
+    setHistoryMissions(prev => prev.map(mission => {
+      if (mission.id !== historyId) return mission;
+
+      const startedAt = mission.startedAt || Date.now();
+      const endedAt = overrides.endedAt || Date.now();
+      const elapsedSeconds = Math.max(0, Math.round((endedAt - startedAt) / 1000));
+
+      return {
+        ...mission,
+        status,
+        duration: overrides.duration || formatElapsedDuration(elapsedSeconds),
+        operatorName: overrides.operatorName || mission.operatorName || DEFAULT_OPERATOR_NAME,
+        commanderName: overrides.commanderName || mission.commanderName || DEFAULT_COMMANDER_NAME,
+        endedAt: status === 'SUCCESS' || status === 'ABORTED' ? endedAt : mission.endedAt,
+        ...overrides
+      };
+    }));
+    if (status === 'SUCCESS') addMissionHistoryEvent(historyId, 'MISSION_COMPLETE', 'Mission reached final objective and completed successfully.');
+    if (status === 'ABORTED') addMissionHistoryEvent(historyId, 'MISSION_ABORTED', 'Mission execution halted before completion.');
   };
 
   const toggleVideoFeed = (swarmId, droneId) => {
@@ -414,6 +590,43 @@ export function MissionProvider({ children }) {
     targetLockRef.current = targetLock;
   }, [targetLock]);
 
+  useEffect(() => {
+    const historyId = currentMissionHistoryIdRef.current;
+    if (!historyId) return;
+
+    const mission = historyMissions.find((item) => item.id === historyId);
+    if (!mission || mission.status === 'SUCCESS' || mission.status === 'ABORTED') return;
+
+    const point = getMissionTrackPoint(mission, telemetry);
+    if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return;
+
+    const now = Date.now();
+    if (historyTrackSampleRef.current.historyId !== historyId) {
+      historyTrackSampleRef.current = { historyId, sampledAt: 0 };
+    }
+    if (now - historyTrackSampleRef.current.sampledAt < 1000) return;
+    historyTrackSampleRef.current.sampledAt = now;
+
+    setHistoryMissions(prev => prev.map((record) => {
+      if (record.id !== historyId) return record;
+      const actualRoute = Array.isArray(record.actualRoute) ? [...record.actualRoute] : [];
+      const lastPoint = actualRoute[actualRoute.length - 1];
+      if (!lastPoint || getDistanceMeters(lastPoint[0], lastPoint[1], point.lat, point.lng) > 3) {
+        actualRoute.push([point.lat, point.lng]);
+      }
+      const elapsedSeconds = Math.max(0, Math.round((now - (record.startedAt || now)) / 1000));
+      return {
+        ...record,
+        actualRoute,
+        duration: formatElapsedDuration(elapsedSeconds),
+        centerLat: point.lat,
+        centerLng: point.lng,
+        lastKnownAlt: point.alt ?? record.lastKnownAlt ?? 0,
+        lastKnownSpeed: point.speed ?? record.lastKnownSpeed ?? 0
+      };
+    }));
+  }, [telemetry, historyMissions]);
+
   // Dynamic simulation loop
   useEffect(() => {
     const interval = setInterval(() => {
@@ -430,11 +643,13 @@ export function MissionProvider({ children }) {
           let newBaseLat = s.baseLat;
           let newBaseLng = s.baseLng;
           let newWaypoints = [...(s.waypoints || [])];
+          const swarmCanMove = canTranslateAtAltitude(s.alt, s.targetAlt);
+          const swarmCenterPoint = getSwarmTrackPoint(s) || { lat: newBaseLat, lng: newBaseLng };
 
           // Check for Arrival and Dwell logic
-          if (newWaypoints.length > 0) {
+          if (swarmCanMove && newWaypoints.length > 0) {
             const target = newWaypoints[0];
-            const dist = getDistanceMeters(newBaseLat, newBaseLng, target.lat, target.lng);
+            const dist = getDistanceMeters(swarmCenterPoint.lat, swarmCenterPoint.lng, target.lat, target.lng);
             
             if (dist < 10) { // Within 10m
               if (!target.landedAt) {
@@ -452,7 +667,7 @@ export function MissionProvider({ children }) {
 
           let groundSpeedKph = 0;
 
-          if (newWaypoints.length > 0) {
+          if (swarmCanMove && newWaypoints.length > 0) {
             const target = newWaypoints[0];
             const windKts = lastAIParsedCommand && lastAIParsedCommand.swarmId === s.id && lastAIParsedCommand.missionWeather
               ? Number(lastAIParsedCommand.missionWeather.windSpeedKts ?? 0)
@@ -474,7 +689,7 @@ export function MissionProvider({ children }) {
             } else {
               newBaseLat = target.lat;
               newBaseLng = target.lng;
-              // Transition handled in the Arrival block above
+              s.status = 'TRANSIT';
             }
             groundSpeedKph = (movement.movedMeters / deltaSeconds) * 3.6;
           }
@@ -488,8 +703,9 @@ export function MissionProvider({ children }) {
           );
           let newDrones = s.drones.map((d, dIdx) => {
              const droneTargetAlt = d.targetAlt ?? s.targetAlt ?? nextSwarmAlt;
+             const droneCanMove = canTranslateAtAltitude(d.alt, droneTargetAlt);
              // Handle independent drone flight
-             if (d.waypoints && d.waypoints.length > 0) {
+             if (droneCanMove && d.waypoints && d.waypoints.length > 0) {
                 const target = d.waypoints[0];
                 const dist = getDistanceMeters(d.lat, d.lng, target.lat, target.lng);
                 
@@ -527,6 +743,21 @@ export function MissionProvider({ children }) {
                    speed: (movement.movedMeters / deltaSeconds) * 3.6,
                    pwr: Math.max(0, d.pwr - 0.02)
                 };
+             }
+
+             if (!droneCanMove) {
+               return {
+                 ...d,
+                 alt: easeAltitude(
+                   d.alt,
+                   droneTargetAlt,
+                   deltaSeconds,
+                   DRONE_CLIMB_MPS,
+                   DRONE_DESCENT_MPS
+                 ),
+                 targetAlt: droneTargetAlt,
+                 speed: 0
+               };
              }
 
              // Handle swarm orbital flight
@@ -578,8 +809,9 @@ export function MissionProvider({ children }) {
         }),
         unassignedDrones: (prev.unassignedDrones || []).map(d => {
           const droneTargetAlt = d.targetAlt ?? d.alt;
+          const droneCanMove = canTranslateAtAltitude(d.alt, droneTargetAlt);
           
-          if (d.waypoints && d.waypoints.length > 0) {
+          if (droneCanMove && d.waypoints && d.waypoints.length > 0) {
             const target = d.waypoints[0];
             const dist = getDistanceMeters(d.lat, d.lng, target.lat, target.lng);
             
@@ -616,6 +848,21 @@ export function MissionProvider({ children }) {
                targetAlt: droneTargetAlt,
                speed: (movement.movedMeters / deltaSeconds) * 3.6,
                pwr: Math.max(0, d.pwr - 0.02)
+            };
+          }
+
+          if (!droneCanMove) {
+            return {
+              ...d,
+              alt: easeAltitude(
+                d.alt,
+                droneTargetAlt,
+                deltaSeconds,
+                DRONE_CLIMB_MPS,
+                DRONE_DESCENT_MPS
+              ),
+              targetAlt: droneTargetAlt,
+              speed: 0
             };
           }
 
@@ -722,6 +969,9 @@ export function MissionProvider({ children }) {
     // Immediately log exactly what the vocal AI deciphered
     addLog(`[VOICE_RECV]: "${text}"`, "VOICE");
 
+    // Temporary voice stub: bypass parsing/API and always dispatch Swarm 01 to Leavey Library.
+    // Keep the original parsing flow commented for quick restore later.
+    /*
     const input = text.toLowerCase();
     const swarmMatch = input.match(/swarm\s*(\d+)/i) || input.match(/team\s*(\d+)/i);
     const swarmId = swarmMatch ? swarmMatch[1].padStart(2, '0') : '01';
@@ -738,12 +988,18 @@ export function MissionProvider({ children }) {
       if (input.includes(key)) score += 2;
       if (score > bestScore) { bestScore = score; destination = coords; destName = key.toUpperCase(); }
     }
-    if (bestScore < 1) { destination = { lat: 25.0, lng: 121.0 }; destName = "COORDINATE_DELTA"; }
+    if (bestScore < 1) { destination = { lat: 34.0522, lng: -118.2437 }; destName = "DOWNTOWN_LOS_ANGELES"; }
 
     let intent = "TRANSIT";
     if (input.includes("recon")) intent = "RECONNAISSANCE";
     if (input.includes("strike") || input.includes("attack")) intent = "STRIKE";
     if (input.includes("stop") || input.includes("abort")) intent = "ABORT_MOTION";
+    */
+    const swarmId = '01';
+    const targetDroneId = null;
+    const destination = { lat: LEAVEY_LIBRARY_LAT, lng: LEAVEY_LIBRARY_LNG };
+    const destName = 'LEAVEY_LIBRARY';
+    const intent = 'TRANSIT';
 
     const swarm = telemetry.swarms.find(s => s.id === swarmId) || telemetry.swarms[0];
     const distM = Math.sqrt(Math.pow(destination.lat - swarm.baseLat, 2) + Math.pow(destination.lng - swarm.baseLng, 2)) * 111320;
@@ -789,6 +1045,160 @@ export function MissionProvider({ children }) {
 
   const clearSwarmWaypoints = (swarmId) => {
     setTelemetry(prev => ({ ...prev, swarms: prev.swarms.map(s => s.id === swarmId ? { ...s, waypoints: [], status: 'STATIONARY' } : s) }));
+  };
+
+  const controlMissionFlight = ({ action, swarmId = null, droneId = null }) => {
+    const historyId = currentMissionHistoryIdRef.current;
+    setTelemetry(prev => {
+      const nextSwarms = prev.swarms.map((swarm) => {
+        if (swarmId && swarm.id !== swarmId) return swarm;
+        if (!swarmId && droneId && !swarm.drones.some((drone) => drone.id === droneId)) return swarm;
+
+        if (droneId) {
+          return {
+            ...swarm,
+            drones: swarm.drones.map((drone) => {
+              if (drone.id !== droneId) return drone;
+
+              if (action === 'pause') {
+                return {
+                  ...drone,
+                  paused: true,
+                  savedWaypoints: [...(drone.waypoints || [])],
+                  waypoints: [],
+                  speed: 0
+                };
+              }
+
+              if (action === 'resume') {
+                return {
+                  ...drone,
+                  paused: false,
+                  waypoints: [...(drone.savedWaypoints || [])],
+                  savedWaypoints: [],
+                  speed: 0
+                };
+              }
+
+              if (action === 'abort') {
+                return {
+                  ...drone,
+                  paused: false,
+                  savedWaypoints: [],
+                  returningHome: true,
+                  targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
+                  waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
+                  speed: 0
+                };
+              }
+
+              return drone;
+            })
+          };
+        }
+
+        if (action === 'pause') {
+          return {
+            ...swarm,
+            status: 'PAUSED',
+            paused: true,
+            savedWaypoints: [...(swarm.waypoints || [])],
+            waypoints: [],
+            speed: 0
+          };
+        }
+
+        if (action === 'resume') {
+          return {
+            ...swarm,
+            status: 'TRANSIT',
+            paused: false,
+            waypoints: [...(swarm.savedWaypoints || [])],
+            savedWaypoints: [],
+            speed: 0
+          };
+        }
+
+        if (action === 'abort') {
+          return {
+            ...swarm,
+            status: 'RETURN_TO_HOME',
+            paused: false,
+            savedWaypoints: [],
+            returningHome: true,
+            targetAlt: resolveMissionTakeoffAltitude(swarm.targetAlt ?? swarm.alt),
+            waypoints: [{ id: `rtb-${swarm.id}`, lat: swarm.homeBaseLat ?? swarm.baseLat, lng: swarm.homeBaseLng ?? swarm.baseLng, label: 'RTB_HOME' }],
+            drones: swarm.drones.map((drone) => ({
+              ...drone,
+              paused: false,
+              savedWaypoints: [],
+              returningHome: true,
+              targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt, resolveMissionTakeoffAltitude(swarm.targetAlt ?? swarm.alt)),
+              waypoints: []
+            })),
+            speed: 0
+          };
+        }
+
+        return swarm;
+      });
+
+      const nextIndependent = (prev.unassignedDrones || []).map((drone) => {
+        if (drone.id !== droneId) return drone;
+
+        if (action === 'pause') {
+          return {
+            ...drone,
+            paused: true,
+            savedWaypoints: [...(drone.waypoints || [])],
+            waypoints: [],
+            speed: 0
+          };
+        }
+
+        if (action === 'resume') {
+          return {
+            ...drone,
+            paused: false,
+            waypoints: [...(drone.savedWaypoints || [])],
+            savedWaypoints: [],
+            speed: 0
+          };
+        }
+
+        if (action === 'abort') {
+          return {
+            ...drone,
+            paused: false,
+            savedWaypoints: [],
+            returningHome: true,
+            targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
+            waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
+            speed: 0
+          };
+        }
+
+        return drone;
+      });
+
+      return { ...prev, swarms: nextSwarms, unassignedDrones: nextIndependent };
+    });
+
+    if (action === 'abort') {
+      updateMissionHistoryStatus('ABORTED');
+      addLog(`Mission abort issued for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}`, 'ALERT');
+      return;
+    }
+
+    if (action === 'pause') {
+      addMissionHistoryEvent(historyId, 'MISSION_PAUSED', `Holding ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`} in current airspace.`);
+    }
+
+    if (action === 'resume') {
+      addMissionHistoryEvent(historyId, 'MISSION_RESUMED', `Resumed route for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}.`);
+    }
+
+    addLog(`${action === 'pause' ? 'Pause' : 'Resume'} issued for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}`, 'SYSTEM');
   };
 
   const moveDroneToSwarm = (droneId, sourceSwarmId, targetSwarmId) => {
@@ -884,6 +1294,7 @@ export function MissionProvider({ children }) {
     activeVideoFeeds, toggleVideoFeed,
     enlargedFeed, setEnlargedFeed,
     historyMissions, setHistoryMissions, addMissionToHistory,
+    updateMissionHistoryStatus,
     selectedHistoryId, setSelectedHistoryId,
     lastAIParsedCommand, setLastAIParsedCommand,
     processAIVoiceCommand,
@@ -891,6 +1302,7 @@ export function MissionProvider({ children }) {
     prepareManualReview,
     updateSwarmName,
     moveDroneToSwarm,
+    controlMissionFlight,
     updateDroneAlt,
     updateSwarmAlt,
     unitSystem,
@@ -905,7 +1317,9 @@ export function MissionProvider({ children }) {
     altitudeInputToMeters,
     LOCATIONS,
     globalMapCenter,
-    changeGlobalLocation
+    changeGlobalLocation,
+    operatorName: DEFAULT_OPERATOR_NAME,
+    commanderName: DEFAULT_COMMANDER_NAME
   };
 
   return (

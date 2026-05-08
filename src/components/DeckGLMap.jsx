@@ -65,7 +65,7 @@ const getVisualCenter = (lng, lat, alt, pitch, bearing) => {
   
   // Parallax displacement: d = h * tan(pitch)
   // To visually center the object, we move the camera target in the direction of the bearing
-  const dMeters = (alt || 120) * Math.tan(pitchRad);
+  const dMeters = (alt ?? 120) * Math.tan(pitchRad);
   
   const dLatMeters = dMeters * Math.cos(bearingRad);
   const dLngMeters = dMeters * Math.sin(bearingRad);
@@ -74,6 +74,17 @@ const getVisualCenter = (lng, lat, alt, pitch, bearing) => {
   const lngOffset = dLngMeters / (111320 * Math.cos(lat * Math.PI / 180));
   
   return { lng: lng + lngOffset, lat: lat + latOffset };
+};
+
+const getTrackingAltitude = (drone) => {
+  if (!drone) return 120;
+
+  const currentAlt = Number(drone.alt ?? 0);
+  const targetAlt = Number(drone.targetAlt ?? currentAlt);
+  const speed = Number(drone.speed ?? 0);
+  const isAscendingIntoMission = targetAlt > currentAlt && speed < 0.5;
+
+  return isAscendingIntoMission ? targetAlt : currentAlt;
 };
 
 const MAP_STYLE = {
@@ -117,7 +128,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
   const [viewState, setViewState] = useState({
     longitude: mapCenter[1],
     latitude: mapCenter[0],
-    zoom: 15,
+    zoom: 16.3,
     pitch: 60,
     bearing: 30
   });
@@ -180,7 +191,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const currentView = viewStateRef.current;
     const targetIdentifier = `${normalizedFocusDrone.swarmId ?? 'solo'}-${normalizedFocusDrone.droneId}`;
     const targetPitch = currentView.pitch > 10 ? currentView.pitch : 60;
-    const visualCenter = getVisualCenter(drone.lng, drone.lat, drone.alt || 250, targetPitch, currentView.bearing || 30);
+    const visualCenter = getVisualCenter(drone.lng, drone.lat, getTrackingAltitude(drone), targetPitch, currentView.bearing || 30);
 
     if (focusTargetRef.current !== targetIdentifier) {
       focusTargetRef.current = targetIdentifier;
@@ -195,7 +206,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         ...prev,
         longitude: visualCenter.lng,
         latitude: visualCenter.lat,
-        zoom: Math.max(prev.zoom, 16),
+        zoom: prev.zoom,
         pitch: prev.pitch > 10 ? prev.pitch : 60,
         transitionDuration: 1100
       }));
@@ -216,7 +227,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     if (!drone) return;
 
     const currentView = viewStateRef.current;
-    const visualCenter = getVisualCenter(drone.lng, drone.lat, drone.alt || 250, currentView.pitch, currentView.bearing);
+    const visualCenter = getVisualCenter(drone.lng, drone.lat, getTrackingAltitude(drone), currentView.pitch, currentView.bearing);
     const nextCenterKey = `${visualCenter.lat.toFixed(6)}:${visualCenter.lng.toFixed(6)}`;
     if (lastTrackedCenterRef.current === nextCenterKey) {
       return;
@@ -276,7 +287,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const lineAlpha = hasFocus ? (isFocused ? 255 : 120) : 180;
     
     return { 
-      position: toAglPosition(metrics.centerLng, metrics.centerLat, s.alt || 120, 2),
+      position: toAglPosition(metrics.centerLng, metrics.centerLat, s.alt ?? 120, 2),
       color: [...rgb, fillAlpha], 
       lineColor: [...rgb, lineAlpha],
       radius: isFocused ? 18 : 14,
@@ -289,7 +300,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const rgb = hexToRgb(s.color);
     const isFocused = focusedSwarmId === s.id;
     const hasFocus = !!focusedSwarmId;
-    const altitude = s.alt || 120;
+    const altitude = s.alt ?? 120;
     
     // Dynamic radius based on actual drone spread
     const baseRadius = isFocused ? Math.max(120, metrics.radius) : metrics.radius;
@@ -319,7 +330,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       const alpha = hasFocus ? (isSwarmFocused ? (isFocused ? 255 : 200) : 120) : 255;
       
       // Elevate drones to 250m+ to ensure they clear the terrain
-      const droneAlt = d.alt || 250;
+      const droneAlt = d.alt ?? 250;
       const rgb = hexToRgb(s.color);
       
       return {
@@ -338,7 +349,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       const hasFocus = !!normalizedFocusDrone;
       const alpha = hasFocus ? (isFocused ? 255 : 120) : 255;
       
-      const droneAlt = d.alt || 250;
+      const droneAlt = d.alt ?? 250;
       return {
         position: toAglPosition(d.lng, d.lat, droneAlt, 2),
         color: [255, 204, 0, alpha], // Amber/Yellow for unassigned
@@ -367,7 +378,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const isFocused = focusedSwarmId === s.id;
     const hasFocus = !!focusedSwarmId;
     const alpha = hasFocus ? (isFocused ? 200 : 80) : 150;
-    const altitude = s.alt || 120;
+    const altitude = s.alt ?? 120;
     return {
       path: [
         toAglPosition(metrics.centerLng, metrics.centerLat, altitude, 1),
@@ -536,7 +547,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         const latOffset = latMeters / 111320; 
         const lngOffset = lngMeters / (111320 * Math.cos(metrics.centerLat * Math.PI / 180)); 
         
-        const renderAltitude = getTerrainElevation(metrics.centerLng, metrics.centerLat) + (s.alt || 120);
+        const renderAltitude = getTerrainElevation(metrics.centerLng, metrics.centerLat) + (s.alt ?? 120);
 
         return {
           position: [metrics.centerLng + lngOffset, metrics.centerLat + latOffset, renderAltitude],

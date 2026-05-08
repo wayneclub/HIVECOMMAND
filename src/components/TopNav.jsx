@@ -3,7 +3,7 @@ import { useMission } from '../context/MissionContext';
 import logoUrl from '../assets/logo.svg';
 
 export default function TopNav() {
-  const { role } = useMission();
+  const { role, lastAIParsedCommand, formatWind, formatTemperature, formatVisibility } = useMission();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -13,6 +13,13 @@ export default function TopNav() {
 
   const dateStr = time.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
   const timeStr = time.toLocaleTimeString('en-GB', { hour12: false }) + ' UTC';
+  const stationWeather = lastAIParsedCommand?.missionWeather || {
+    condition: 'STABLE',
+    windSpeedKts: 6,
+    windDirection: 'NE',
+    visibilityKm: 10,
+    tempC: 24
+  };
 
   return (
     <div style={{ height: '60px', background: 'var(--bg-panel)', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', zIndex: 1000, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
@@ -28,7 +35,17 @@ export default function TopNav() {
         <span className="mono text-main" style={{ letterSpacing: '1px', fontWeight: 'bold' }}>MISSION: ISLAND RECON</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 12px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}>
+          <span className="mono text-muted" style={{ fontSize: '10px', letterSpacing: '0.12em' }}>STATION WX</span>
+          <span className="mono text-main" style={{ fontSize: '10px' }}>{stationWeather.condition}</span>
+          <span className="mono text-muted" style={{ fontSize: '10px' }}>|</span>
+          <span className="mono text-main" style={{ fontSize: '10px' }}>{formatTemperature(stationWeather.tempC)}</span>
+          <span className="mono text-muted" style={{ fontSize: '10px' }}>|</span>
+          <span className="mono text-main" style={{ fontSize: '10px' }}>{formatWind(stationWeather)}</span>
+          <span className="mono text-muted" style={{ fontSize: '10px' }}>|</span>
+          <span className="mono text-main" style={{ fontSize: '10px' }}>VIS {formatVisibility(stationWeather.visibilityKm)}</span>
+        </div>
         <div className="flex-column" style={{ alignItems: 'flex-end' }}>
            <span className="mono text-muted" style={{ fontSize: '10px' }}>{dateStr}</span>
            <span className="mono text-cyan" style={{ fontSize: '14px', fontWeight: 'bold' }}>{timeStr}</span>

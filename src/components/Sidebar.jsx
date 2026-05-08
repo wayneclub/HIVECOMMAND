@@ -24,7 +24,6 @@ export default function Sidebar() {
 
   // Route groupings base logic (can be refined per exact screen needs)
   const isTactical = [1, 2, 3, 4].includes(activeScreen);
-  const isStrategic = [5, 6, 7].includes(activeScreen);
   const isHistory = activeScreen === 8;
   const isSettings = activeScreen === 9;
 
@@ -44,14 +43,6 @@ export default function Sidebar() {
             <line x1="12" y1="20" x2="12" y2="22"></line>
             <line x1="2" y1="12" x2="4" y2="12"></line>
             <line x1="20" y1="12" x2="22" y2="12"></line>
-         </svg>
-      </NavItem>
-
-      <NavItem label="STRATEGIC" active={isStrategic} onClick={() => setActiveScreen(5)}>
-         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={isStrategic ? "var(--cyan-primary)" : "var(--text-muted)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-            <line x1="15" y1="3" x2="15" y2="21"></line>
          </svg>
       </NavItem>
 

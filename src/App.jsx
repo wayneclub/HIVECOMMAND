@@ -8,7 +8,6 @@ import OperatorDefault from './views/OperatorDefault';
 import VoiceCaptureModal from './views/VoiceCaptureModal';
 import AIParsedReview from './views/AIParsedReview';
 import OperatorAttackMonitor from './views/OperatorAttackMonitor';
-import CommanderDefault from './views/CommanderDefault';
 import CommanderApproval from './views/CommanderApproval';
 import CommanderDetailedMonitor from './views/CommanderDetailedMonitor';
 import MissionPostMortem from './views/MissionPostMortem';
@@ -24,7 +23,6 @@ function MainLayout() {
       case 2: return <VoiceCaptureModal />;
       case 3: return <AIParsedReview />;
       case 4: return <OperatorAttackMonitor />;
-      case 5: return <CommanderDefault />;
       case 6: return <CommanderApproval />;
       case 7: return <CommanderDetailedMonitor />;
       case 8: return <MissionPostMortem />;

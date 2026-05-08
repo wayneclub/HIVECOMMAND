@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMission } from '../context/MissionContext';
 
 export default function CommanderDetailedMonitor() {
-  const { setActiveScreen, setTacticalPhase, telemetry, formatSpeed } = useMission();
+  const { setActiveScreen, setTacticalPhase, telemetry, formatSpeed, updateMissionHistoryStatus } = useMission();
   const [countdown, setCountdown] = useState(15);
   const [log, setLog] = useState([
     "22:38:12 FINAL_APPROACH_INITIATED.",
@@ -18,13 +18,15 @@ export default function CommanderDetailedMonitor() {
       }, 1000);
       return () => clearTimeout(timer);
     } else {
+      updateMissionHistoryStatus('SUCCESS');
       setTacticalPhase('COMPLETED');
       setActiveScreen(8);
     }
-  }, [countdown, setActiveScreen, setTacticalPhase]);
+  }, [countdown, setActiveScreen, setTacticalPhase, updateMissionHistoryStatus]);
 
   const handleAbort = () => {
-    setActiveScreen(5);
+    updateMissionHistoryStatus('ABORTED');
+    setActiveScreen(1);
   };
 
   return (

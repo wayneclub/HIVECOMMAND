@@ -20,10 +20,10 @@ export default function RBACSettings() {
   const handleRoleChange = (roleName) => {
     if (roleName === 'BRIGADE COMMANDER') {
       setRole('COMMANDER');
-      setActiveScreen(5); // Switch to Strategic Dashboard
+      setActiveScreen(1);
     } else {
       setRole('OPERATOR');
-      setActiveScreen(1); // Switch to Tactical Map
+      setActiveScreen(1);
     }
   };
 
@@ -100,7 +100,7 @@ export default function RBACSettings() {
          </div>
 
          <div style={{ marginTop: '32px' }}>
-            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>THEATER LOCATION CONFIGURATION</h4>
+            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>US THEATER LOCATION CONFIGURATION</h4>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                {Object.keys(LOCATIONS || {}).map(locKey => (
                  <button 

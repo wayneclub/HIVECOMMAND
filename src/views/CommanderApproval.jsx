@@ -3,7 +3,7 @@ import { useMission } from '../context/MissionContext';
 import { MapContainer, TileLayer } from 'react-leaflet';
 
 export default function CommanderApproval() {
-  const { setActiveScreen, setTacticalPhase, telemetry } = useMission();
+  const { setActiveScreen, setTacticalPhase, telemetry, lastAIParsedCommand, updateMissionHistoryStatus } = useMission();
   const [isCanceled, setIsCanceled] = useState(false);
 
   const handleAuthorize = () => {
@@ -13,7 +13,8 @@ export default function CommanderApproval() {
 
   const handleAbort = () => {
     setIsCanceled(true);
-    setTimeout(() => setActiveScreen(5), 1000);
+    updateMissionHistoryStatus('ABORTED');
+    setTimeout(() => setActiveScreen(1), 1000);
   };
 
   return (
@@ -21,7 +22,7 @@ export default function CommanderApproval() {
       
       {/* Target Backdrop (Satellite Scan) */}
       <div style={{ flex: 1, position: 'relative' }}>
-         <MapContainer center={[24.7869, 120.9975]} zoom={16} zoomControl={false} style={{ width: '100%', height: '100%' }}>
+         <MapContainer center={[lastAIParsedCommand?.destination?.lat || 34.0206925, lastAIParsedCommand?.destination?.lng || -118.2895045]} zoom={16} zoomControl={false} style={{ width: '100%', height: '100%' }}>
             <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=en" />
          </MapContainer>
          <div style={{ position: 'absolute', top:0, left:0, right:0, bottom:0, background: 'rgba(10, 20, 30, 0.6) radial-gradient(circle, transparent 30%, #000 100%)', zIndex: 400, pointerEvents: 'none' }}></div>
