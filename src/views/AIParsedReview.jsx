@@ -42,6 +42,26 @@ const sectionTitleStyle = {
 };
 
 const formatMissionLabel = (label, fallback = 'UNKNOWN TARGET') => String(label || fallback).replace(/_/g, ' ').toUpperCase();
+const formatLegDuration = (secondsValue, minutesValue) => {
+  const safeSeconds = Number(secondsValue);
+  if (Number.isFinite(safeSeconds) && safeSeconds > 0) {
+    const minutes = String(Math.floor(safeSeconds / 60)).padStart(2, '0');
+    const seconds = String(Math.floor(safeSeconds % 60)).padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  }
+
+  const safeMinutes = Number(minutesValue);
+  if (Number.isFinite(safeMinutes) && safeMinutes > 0) {
+    return `${String(safeMinutes).padStart(2, '0')}:00`;
+  }
+
+  return '00:00';
+};
+const normalizeObjectiveLabel = (intent) => {
+  if (!intent) return 'TRANSIT';
+  if (intent === 'MANUAL_PATH') return 'TRANSIT';
+  return formatMissionLabel(intent, 'TRANSIT');
+};
 const shouldReverseLookupTargetName = (label) => {
   if (!label) return true;
   return /UNKNOWN|MULTIPOINT|MANUAL_PATH|FINAL_APPROACH|WAYPOINT/i.test(String(label));
@@ -50,15 +70,21 @@ const pickReverseLookupName = (payload) => {
   if (!payload || typeof payload !== 'object') return null;
   const address = payload.address || {};
   return (
-    payload.name ||
+    address.road ||
+    address.pedestrian ||
+    address.footway ||
+    address.cycleway ||
+    address.neighbourhood ||
+    payload.namedetails?.name_en ||
+    payload.namedetails?.int_name ||
     address.amenity ||
     address.building ||
     address.attraction ||
     address.university ||
     address.school ||
     address.office ||
-    address.road ||
-    payload.display_name?.split(',')[0] ||
+    payload.name ||
+    payload.display_name?.split(',')[0]?.replace(/[^\x00-\x7F]/g, '').trim() ||
     null
   );
 };
@@ -95,6 +121,7 @@ export default function AIParsedReview() {
     setTacticalPhase,
     telemetry,
     lastAIParsedCommand,
+    setLastAIParsedCommand,
     addWaypointToSwarm,
     addWaypointToDrone,
     addMissionToHistory,
@@ -107,6 +134,8 @@ export default function AIParsedReview() {
     formatWind
   } = useMission();
   const [resolvedTargetName, setResolvedTargetName] = useState('');
+  const [missionNameDraft, setMissionNameDraft] = useState(lastAIParsedCommand?.missionName || formatMissionLabel(lastAIParsedCommand?.destName, 'ACTIVE MISSION'));
+  const [missionNotesDraft, setMissionNotesDraft] = useState(lastAIParsedCommand?.missionNotes || '');
 
   if (!lastAIParsedCommand) {
     return (
@@ -118,25 +147,31 @@ export default function AIParsedReview() {
   }
 
   const handleDeploy = () => {
-    addMissionToHistory(lastAIParsedCommand);
+    const preparedMission = {
+      ...lastAIParsedCommand,
+      missionName: missionNameDraft.trim() || formatMissionLabel(lastAIParsedCommand.destName, 'ACTIVE MISSION'),
+      missionNotes: missionNotesDraft.trim()
+    };
+    setLastAIParsedCommand(preparedMission);
+    addMissionToHistory(preparedMission);
 
-    if (lastAIParsedCommand.intent === 'ABORT_MOTION') {
-      clearSwarmWaypoints(lastAIParsedCommand.swarmId);
+    if (preparedMission.intent === 'ABORT_MOTION') {
+      clearSwarmWaypoints(preparedMission.swarmId);
       updateMissionHistoryStatus('ABORTED');
       setTacticalPhase('IDLE');
       setActiveScreen(1);
       return;
     }
 
-    const waypoints = lastAIParsedCommand.waypoints || [lastAIParsedCommand.destination];
+    const waypoints = preparedMission.waypoints || [preparedMission.destination];
 
-    if (lastAIParsedCommand.targetDroneId) {
-      addWaypointToDrone(lastAIParsedCommand.swarmId, lastAIParsedCommand.targetDroneId, waypoints);
+    if (preparedMission.targetDroneId) {
+      addWaypointToDrone(preparedMission.swarmId, preparedMission.targetDroneId, waypoints);
     } else {
-      addWaypointToSwarm(lastAIParsedCommand.swarmId, waypoints);
+      addWaypointToSwarm(preparedMission.swarmId, waypoints);
     }
 
-    if (lastAIParsedCommand.intent === 'STRIKE') {
+    if (preparedMission.intent === 'STRIKE') {
       setTacticalPhase('AWAITING_COMMANDER');
       setActiveScreen(4);
     } else {
@@ -166,6 +201,9 @@ export default function AIParsedReview() {
     return origin;
   }, [originPosition, pathWaypoints, isAbort, lastAIParsedCommand.destination]);
 
+  const assignedAssetLabel = lastAIParsedCommand.targetDroneId
+    ? `UAV_${lastAIParsedCommand.targetDroneId}`
+    : `SWARM_${lastAIParsedCommand.swarmId}`;
   const manifestRows = (lastAIParsedCommand.waypoints || [
     {
       ...lastAIParsedCommand.destination,
@@ -173,21 +211,42 @@ export default function AIParsedReview() {
       distance: lastAIParsedCommand.distance,
       eta: lastAIParsedCommand.eta
     }
-  ]).map((wp, index) => ({
-    ...wp,
-    label: wp.label || lastAIParsedCommand.destName || `WAYPOINT_${index + 1}`,
-    distance: wp.distance || lastAIParsedCommand.distance,
-    eta: wp.eta || lastAIParsedCommand.eta
-  }));
+  ]).map((wp, index) => {
+    const fallbackSegmentDistanceMeters = Number.isFinite(Number(wp.segmentDistanceMeters))
+      ? Number(wp.segmentDistanceMeters)
+      : Number.isFinite(Number(wp.distanceMeters))
+        ? Number(wp.distanceMeters)
+        : Number(wp.distance || 0) * 1000;
+    const fallbackCumulativeDistanceMeters = Number.isFinite(Number(wp.distanceMeters))
+      ? Number(wp.distanceMeters)
+      : Number(wp.distance || 0) * 1000;
+    const sourceLabel = wp.sourceLabel || (index === 0 ? assignedAssetLabel : `WAYPOINT ${index}`);
+    const targetLabel = wp.label || lastAIParsedCommand.destName || `WAYPOINT_${index + 1}`;
 
-  const assignedAssetLabel = lastAIParsedCommand.targetDroneId
-    ? `UAV_${lastAIParsedCommand.targetDroneId}`
-    : `SWARM_${lastAIParsedCommand.swarmId}`;
+    return {
+      ...wp,
+      label: targetLabel,
+      sourceLabel,
+      targetLabel,
+      legLabel: `LEG_${String(index + 1).padStart(2, '0')}`,
+      segmentDistanceMeters: fallbackSegmentDistanceMeters,
+      cumulativeDistanceMeters: fallbackCumulativeDistanceMeters,
+      segmentDurationSec: Number.isFinite(Number(wp.segmentDurationSec)) ? Number(wp.segmentDurationSec) : null,
+      segmentDurationMin: Number.isFinite(Number(wp.segmentDurationMin)) ? Number(wp.segmentDurationMin) : null,
+      cumulativeDurationSec: Number.isFinite(Number(wp.cumulativeDurationSec)) ? Number(wp.cumulativeDurationSec) : null,
+      eta: wp.eta || lastAIParsedCommand.eta
+    };
+  });
   const totalDistanceMeters = Number.isFinite(Number(lastAIParsedCommand.distanceMeters))
     ? Number(lastAIParsedCommand.distanceMeters)
     : Number(lastAIParsedCommand.distance || 0) * 1000;
   const targetWeather = lastAIParsedCommand.missionWeather;
   const targetDisplayName = resolvedTargetName || formatMissionLabel(lastAIParsedCommand.destName, 'FINAL APPROACH');
+
+  useEffect(() => {
+    setMissionNameDraft(lastAIParsedCommand?.missionName || formatMissionLabel(lastAIParsedCommand?.destName, 'ACTIVE MISSION'));
+    setMissionNotesDraft(lastAIParsedCommand?.missionNotes || '');
+  }, [lastAIParsedCommand?.missionName, lastAIParsedCommand?.missionNotes, lastAIParsedCommand?.destName]);
 
   useEffect(() => {
     const destination = lastAIParsedCommand?.destination;
@@ -264,16 +323,24 @@ export default function AIParsedReview() {
               )}
 
               {manifestRows.map((wp, idx) => {
-                const direction = idx % 2 === 0 ? 'top' : 'right';
-                const offset = direction === 'top' ? [0, -18] : [22, 0];
+                const direction = idx % 3 === 0 ? 'top' : idx % 3 === 1 ? 'right' : 'left';
+                const offset =
+                  direction === 'top' ? [0, -18] :
+                  direction === 'right' ? [22, 0] :
+                  [-22, 0];
 
                 return (
                   <Marker key={wp.id || `${wp.label}-${idx}`} position={[wp.lat, wp.lng]} icon={reviewWaypointIcon(idx, assetColor)}>
                     <Tooltip permanent direction={direction} offset={offset} opacity={1} className="review-tooltip">
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: '132px' }}>
-                        <span className="mono" style={{ fontSize: '10px', color: '#fff' }}>{wp.label}</span>
-                        <span className="mono" style={{ fontSize: '9px', color: 'var(--cyan-primary)' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
-                        <span className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)' }}>ETA {wp.eta}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '158px' }}>
+                        <span className="mono" style={{ fontSize: '9px', color: 'var(--cyan-primary)' }}>{wp.legLabel}</span>
+                        <span className="mono" style={{ fontSize: '10px', color: '#fff' }}>{formatMissionLabel(wp.sourceLabel)} → {formatMissionLabel(wp.targetLabel)}</span>
+                        <span className="mono" style={{ fontSize: '9px', color: 'var(--cyan-primary)' }}>
+                          LEG {formatDistance(wp.segmentDistanceMeters)} // {formatLegDuration(wp.segmentDurationSec, wp.segmentDurationMin)}
+                        </span>
+                        <span className="mono" style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)' }}>
+                          CUM {formatDistance(wp.cumulativeDistanceMeters)} // ETA {wp.eta}
+                        </span>
                       </div>
                     </Tooltip>
                   </Marker>
@@ -296,7 +363,7 @@ export default function AIParsedReview() {
           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="display text-main" style={{ fontSize: '16px', letterSpacing: '0.08em' }}>OBJECTIVE</div>
             <div className="display" style={{ fontSize: '42px', color: 'var(--cyan-primary)', lineHeight: 1.02 }}>
-              {lastAIParsedCommand.intent}
+              {normalizeObjectiveLabel(lastAIParsedCommand.intent)}
             </div>
             <div className="mono text-muted" style={{ fontSize: '11px', lineHeight: 1.7 }}>
               SOURCE // {lastAIParsedCommand.raw === 'MANUAL_TACTICAL_PLAN' ? 'MANUAL_OPERATOR_INPUT' : 'NEURAL_VOICE_CAPTURE'}
@@ -329,11 +396,57 @@ export default function AIParsedReview() {
         )}
 
         <div style={{ ...cardStyle, padding: '24px 28px' }}>
+          <div className="mono" style={sectionTitleStyle}>MISSION IDENTITY</div>
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <div className="mono text-muted" style={{ fontSize: '10px', marginBottom: '8px' }}>MISSION NAME</div>
+              <input
+                type="text"
+                value={missionNameDraft}
+                onChange={(e) => setMissionNameDraft(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  fontSize: '15px',
+                  padding: '12px 14px',
+                  fontFamily: 'var(--font-mono)',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div>
+              <div className="mono text-muted" style={{ fontSize: '10px', marginBottom: '8px' }}>MISSION NOTES</div>
+              <textarea
+                value={missionNotesDraft}
+                onChange={(e) => setMissionNotesDraft(e.target.value)}
+                rows={4}
+                placeholder="Add tactical notes, context, or commander remarks..."
+                style={{
+                  width: '100%',
+                  resize: 'vertical',
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#fff',
+                  fontSize: '13px',
+                  padding: '12px 14px',
+                  fontFamily: 'var(--font-mono)',
+                  outline: 'none',
+                  lineHeight: 1.5
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ ...cardStyle, padding: '24px 28px' }}>
           <div className="mono" style={sectionTitleStyle}>WAYPOINT MANIFEST</div>
-          <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>PNT</span>
-            <span className="mono text-muted" style={{ fontSize: '10px' }}>DISTANCE</span>
-            <span className="mono text-muted" style={{ fontSize: '10px', textAlign: 'right' }}>EST_ETA</span>
+          <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1.5fr 0.9fr 0.8fr 0.8fr', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <span className="mono text-muted" style={{ fontSize: '10px' }}>LEG</span>
+            <span className="mono text-muted" style={{ fontSize: '10px' }}>LEG_DIST</span>
+            <span className="mono text-muted" style={{ fontSize: '10px' }}>LEG_TIME</span>
+            <span className="mono text-muted" style={{ fontSize: '10px', textAlign: 'right' }}>ARRIVAL</span>
           </div>
           <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {manifestRows.map((wp, i) => (
@@ -341,20 +454,26 @@ export default function AIParsedReview() {
                 key={wp.id || `${wp.label}-${i}`}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1.7fr 1fr 1fr',
+                  gridTemplateColumns: '1.5fr 0.9fr 0.8fr 0.8fr',
                   gap: '12px',
                   alignItems: 'center',
                   padding: '14px 0',
                   borderBottom: i === manifestRows.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.06)'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                   <div style={{ width: '24px', height: '24px', borderRadius: '999px', border: '1px solid var(--cyan-primary)', color: 'var(--cyan-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
                     {i + 1}
                   </div>
-                  <span className="mono text-main" style={{ fontSize: '12px' }}>{formatMissionLabel(wp.label, `WAYPOINT ${i + 1}`)}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span className="mono text-main" style={{ fontSize: '12px' }}>{wp.legLabel}</span>
+                    <span className="mono text-muted" style={{ fontSize: '10px', lineHeight: 1.4 }}>
+                      {formatMissionLabel(wp.sourceLabel)} → {formatMissionLabel(wp.targetLabel, `WAYPOINT ${i + 1}`)}
+                    </span>
+                  </div>
                 </div>
-                <span className="mono text-main" style={{ fontSize: '11px' }}>{formatDistance(Number.isFinite(Number(wp.distanceMeters)) ? Number(wp.distanceMeters) : Number(wp.distance || 0) * 1000)}</span>
+                <span className="mono text-main" style={{ fontSize: '11px' }}>{formatDistance(wp.segmentDistanceMeters)}</span>
+                <span className="mono text-main" style={{ fontSize: '11px' }}>{formatLegDuration(wp.segmentDurationSec, wp.segmentDurationMin)}</span>
                 <span className="mono text-cyan" style={{ fontSize: '11px', textAlign: 'right', fontWeight: 'bold' }}>{wp.eta}</span>
               </div>
             ))}
@@ -373,6 +492,12 @@ export default function AIParsedReview() {
               <span className="mono text-cyan" style={{ fontSize: '13px' }}>{formatDistance(totalDistanceMeters)}</span>
               <span className="mono text-muted" style={{ fontSize: '11px' }}>AVG_GS</span>
               <span className="mono text-main" style={{ fontSize: '13px' }}>{formatSpeed(lastAIParsedCommand.predictedGS)}</span>
+              {manifestRows.length > 1 && (
+                <>
+                  <span className="mono text-muted" style={{ fontSize: '11px' }}>LEG_COUNT</span>
+                  <span className="mono text-main" style={{ fontSize: '13px' }}>{manifestRows.length}</span>
+                </>
+              )}
             </div>
 
             <div style={{ paddingTop: '14px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>

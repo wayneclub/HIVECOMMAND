@@ -15,6 +15,64 @@ const VISION_MODES = {
   BW: { label: 'BW', title: 'BLACKWHITE', filter: 'grayscale(1) contrast(1.2)' },
   NV: { label: 'NV', title: 'NIGHT_VISION', filter: 'sepia(1) hue-rotate(65deg) saturate(2.2) brightness(1.05) contrast(1.15)' }
 };
+const AI_DETECTION_COLORS = {
+  HUMAN: '#00e5ff',
+  STRUCTURE: '#ff6b00',
+  VEHICLE: '#ffe066'
+};
+const STRUCTURE_DETECTION_THRESHOLD = 0.88;
+const HUMAN_DETECTION_THRESHOLD = 0.84;
+const VEHICLE_DETECTION_THRESHOLD = 0.9;
+const AI_DETECTION_PROFILES = {
+  '01': {
+    structure: { x: 0.37, y: 0.22, w: 0.24, h: 0.24, dx: 0.008, dy: 0.006, speed: 0.045, confidence: 0.93, flicker: 0.035, cadence: 0.48, window: 0.68 },
+    vehicles: [
+      { x: 0.68, y: 0.77, w: 0.09, h: 0.065, dx: 0.003, dy: 0.002, speed: 0.03, phase: 0.25, confidence: 0.93, flicker: 0.075, cadence: 0.82, window: 0.44 }
+    ],
+    humans: [
+      { x: 0.24, y: 0.71, w: 0.048, h: 0.16, dx: 0.006, dy: 0.005, speed: 0.05, phase: 0.6, confidence: 0.85, flicker: 0.1, cadence: 1.05, window: 0.32 }
+    ]
+  },
+  '02': {
+    structure: { x: 0.45, y: 0.24, w: 0.22, h: 0.22, dx: 0.006, dy: 0.005, speed: 0.04, confidence: 0.92, flicker: 0.03, cadence: 0.45, window: 0.7 },
+    vehicles: [
+      { x: 0.16, y: 0.79, w: 0.085, h: 0.06, dx: 0.002, dy: 0.002, speed: 0.028, phase: 0.8, confidence: 0.91, flicker: 0.07, cadence: 0.78, window: 0.42 }
+    ],
+    humans: [
+      { x: 0.53, y: 0.72, w: 0.046, h: 0.16, dx: 0.005, dy: 0.005, speed: 0.048, phase: 1.4, confidence: 0.83, flicker: 0.11, cadence: 0.96, window: 0.28 }
+    ]
+  },
+  '03': {
+    structure: { x: 0.42, y: 0.23, w: 0.25, h: 0.23, dx: 0.007, dy: 0.005, speed: 0.05, confidence: 0.93, flicker: 0.04, cadence: 0.52, window: 0.66 },
+    vehicles: [
+      { x: 0.74, y: 0.76, w: 0.086, h: 0.06, dx: 0.003, dy: 0.002, speed: 0.032, phase: 1.2, confidence: 0.9, flicker: 0.075, cadence: 0.88, window: 0.38 }
+    ],
+    humans: [
+      { x: 0.31, y: 0.7, w: 0.045, h: 0.155, dx: 0.004, dy: 0.004, speed: 0.045, phase: 0.9, confidence: 0.81, flicker: 0.12, cadence: 1.08, window: 0.24 }
+    ]
+  },
+  '04': {
+    structure: { x: 0.48, y: 0.21, w: 0.21, h: 0.24, dx: 0.006, dy: 0.004, speed: 0.038, confidence: 0.91, flicker: 0.035, cadence: 0.41, window: 0.72 },
+    vehicles: [],
+    humans: [
+      { x: 0.62, y: 0.72, w: 0.044, h: 0.155, dx: 0.004, dy: 0.004, speed: 0.042, phase: 1.8, confidence: 0.8, flicker: 0.12, cadence: 1.02, window: 0.22 }
+    ]
+  },
+  '05': {
+    structure: { x: 0.4, y: 0.2, w: 0.26, h: 0.25, dx: 0.006, dy: 0.005, speed: 0.035, confidence: 0.94, flicker: 0.028, cadence: 0.36, window: 0.75 },
+    vehicles: [
+      { x: 0.72, y: 0.8, w: 0.09, h: 0.065, dx: 0.002, dy: 0.002, speed: 0.025, phase: 0.55, confidence: 0.92, flicker: 0.07, cadence: 0.74, window: 0.4 }
+    ],
+    humans: []
+  },
+  default: {
+    structure: { x: 0.43, y: 0.22, w: 0.23, h: 0.23, dx: 0.006, dy: 0.005, speed: 0.04, confidence: 0.91, flicker: 0.035, cadence: 0.44, window: 0.7 },
+    vehicles: [],
+    humans: [
+      { x: 0.28, y: 0.71, w: 0.045, h: 0.155, dx: 0.004, dy: 0.004, speed: 0.045, phase: 1.1, confidence: 0.8, flicker: 0.11, cadence: 1.0, window: 0.24 }
+    ]
+  }
+};
 
 const isExecutionPhaseActive = (phase) => phase === 'TRANSIT' || phase === 'STRIKE_MONITORING';
 const getSwarmZoneCenter = (swarm) => {
@@ -76,6 +134,179 @@ const resolveFocusedDroneData = (telemetry, focusDrone) => {
     activeDrone
   };
 };
+const getSimulatedDetections = (droneId, playbackTime = 0, frameWidth = 420, frameHeight = 248) => {
+  const t = Number(playbackTime || 0);
+  const profile = AI_DETECTION_PROFILES[String(droneId)] || AI_DETECTION_PROFILES.default;
+  const clampBox = (x, y, width, height, paddingX = 14, paddingY = 18) => ({
+    x: Math.max(paddingX, Math.min(frameWidth - width - paddingX, x)),
+    y: Math.max(paddingY, Math.min(frameHeight - height - paddingY, y)),
+    width,
+    height
+  });
+  const buildBox = (anchor, box, tick, phase = 0) => {
+    const width = Math.max(24, frameWidth * box.w);
+    const height = Math.max(44, frameHeight * box.h);
+    const x = frameWidth * anchor.x + Math.sin(tick * box.speed + phase) * (frameWidth * (box.dx || 0));
+    const y = frameHeight * anchor.y + Math.cos(tick * box.speed * 0.85 + phase) * (frameHeight * (box.dy || 0));
+    return clampBox(x, y, width, height);
+  };
+  const getLiveConfidence = (box, tick, phase = 0) => {
+    const base = box.confidence ?? 0.9;
+    const cadence = box.cadence ?? 0.5;
+    const flicker = box.flicker ?? 0.06;
+    const window = box.window ?? 0.65;
+    const visibilityWave = (Math.sin(tick * cadence + phase) + 1) / 2;
+    if (visibilityWave < (1 - window)) {
+      return 0;
+    }
+    const variance = Math.cos(tick * (cadence * 1.7) + phase * 1.9) * flicker;
+    return Math.max(0, Math.min(0.99, base + variance));
+  };
+
+  const detections = [];
+  const structureConfidence = getLiveConfidence(profile.structure, t);
+  if (structureConfidence >= STRUCTURE_DETECTION_THRESHOLD) {
+    const structureBox = buildBox(
+      { x: profile.structure.x, y: profile.structure.y },
+      profile.structure,
+      t
+    );
+    detections.push({
+      id: `structure-${droneId}`,
+      type: 'STRUCTURE',
+      confidence: structureConfidence,
+      ...structureBox
+    });
+  }
+
+  profile.humans.forEach((human, index) => {
+    const liveConfidence = getLiveConfidence(human, t, human.phase || 0);
+    if (liveConfidence < HUMAN_DETECTION_THRESHOLD) {
+      return;
+    }
+    const box = buildBox({ x: human.x, y: human.y }, human, t, human.phase || 0);
+    detections.push({
+      id: `human-${droneId}-${index}`,
+      type: 'HUMAN',
+      confidence: liveConfidence,
+      ...box
+    });
+  });
+
+  (profile.vehicles || []).forEach((vehicle, index) => {
+    const liveConfidence = getLiveConfidence(vehicle, t, vehicle.phase || 0);
+    if (liveConfidence < VEHICLE_DETECTION_THRESHOLD) {
+      return;
+    }
+    const box = buildBox({ x: vehicle.x, y: vehicle.y }, vehicle, t, vehicle.phase || 0);
+    detections.push({
+      id: `vehicle-${droneId}-${index}`,
+      type: 'VEHICLE',
+      confidence: liveConfidence,
+      ...box
+    });
+  });
+
+  return detections;
+};
+
+function VideoAiHudOverlay({ detections }) {
+  if (!detections?.length) return null;
+
+  const humanCount = detections.filter((item) => item.type === 'HUMAN').length;
+  const structureCount = detections.filter((item) => item.type === 'STRUCTURE').length;
+  const vehicleCount = detections.filter((item) => item.type === 'VEHICLE').length;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 7 }}>
+      {detections.map((detection) => (
+        <div
+          key={detection.id}
+          style={{
+            position: 'absolute',
+            left: detection.x,
+            top: detection.y,
+            width: detection.width,
+            height: detection.height,
+            border: `2px solid ${AI_DETECTION_COLORS[detection.type]}`,
+            boxShadow: `0 0 0 1px rgba(0,0,0,0.35), 0 0 14px ${AI_DETECTION_COLORS[detection.type]}55`,
+            background: `linear-gradient(180deg, ${AI_DETECTION_COLORS[detection.type]}10, transparent 30%)`
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '-18px',
+              left: '-2px',
+              padding: '2px 6px',
+              background: 'rgba(5, 10, 16, 0.9)',
+              border: `1px solid ${AI_DETECTION_COLORS[detection.type]}`,
+              color: AI_DETECTION_COLORS[detection.type],
+              fontFamily: 'var(--font-mono)',
+              fontSize: '9px',
+              letterSpacing: '0.08em',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            TRACKED {detection.type} {Math.round(detection.confidence * 100)}%
+          </div>
+          <div style={{ position: 'absolute', inset: '-2px', border: `1px dashed ${AI_DETECTION_COLORS[detection.type]}77` }} />
+        </div>
+      ))}
+
+      <div style={{
+        position: 'absolute',
+        top: '12px',
+        left: '12px',
+        display: 'flex',
+        gap: '8px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{
+          padding: '3px 7px',
+          background: 'rgba(5, 10, 16, 0.9)',
+          border: '1px solid rgba(0,229,255,0.45)',
+          color: 'var(--cyan-primary)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '9px',
+          letterSpacing: '0.08em'
+        }}>
+          AI_HUD ASSIST
+        </div>
+        <div style={{
+          padding: '3px 7px',
+          background: 'rgba(5, 10, 16, 0.9)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          color: '#d7ebf8',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '9px'
+        }}>
+          HUMAN {humanCount}
+        </div>
+        <div style={{
+          padding: '3px 7px',
+          background: 'rgba(5, 10, 16, 0.9)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          color: '#d7ebf8',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '9px'
+        }}>
+          STRUCTURE {structureCount}
+        </div>
+        <div style={{
+          padding: '3px 7px',
+          background: 'rgba(5, 10, 16, 0.9)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          color: '#d7ebf8',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '9px'
+        }}>
+          VEHICLE {vehicleCount}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function FocusedDroneHud({ details, displayUnit, formatAltitude, formatSpeed, formatWind, windSource }) {
   const accent = details?.color || displayUnit?.color || 'var(--cyan-primary)';
@@ -333,6 +564,19 @@ function MapEventsListener({ setAutoTrack, isTargeting, onMapClick, setFocusDron
   return null;
 }
 
+function MapZoomSync({ onZoomChange }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!onZoomChange) return undefined;
+    const handleZoom = () => onZoomChange(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => map.off('zoomend', handleZoom);
+  }, [map, onZoomChange]);
+
+  return null;
+}
+
 function MapTracker({ isTargeting, autoTrack, normalizedFocusDrone }) {
   const map = useMap();
   const { telemetry, targetLock, lastAIParsedCommand } = useMission();
@@ -442,6 +686,7 @@ function MapTracker({ isTargeting, autoTrack, normalizedFocusDrone }) {
 
 
 export default function OperatorDefault() {
+  const DEFAULT_MAP_ZOOM = 16.3;
   const { 
     setActiveScreen, 
     telemetry, 
@@ -482,9 +727,12 @@ export default function OperatorDefault() {
   const [isTargeting, setIsTargeting] = useState(false);
   const [autoTrack, setAutoTrack] = useState(true);
   const [mapType, setMapType] = useState('satellite');
+  const [mapZoomLevel, setMapZoomLevel] = useState(DEFAULT_MAP_ZOOM);
   const [editingSwarmId, setEditingSwarmId] = useState(null);
   const [altitudeDrafts, setAltitudeDrafts] = useState({});
   const [maximizedFeed, setMaximizedFeed] = useState(null);
+  const [floatingFeedWidgets, setFloatingFeedWidgets] = useState([]);
+  const [feedHudTick, setFeedHudTick] = useState(0);
   const assetBase = import.meta.env.BASE_URL;
   const droneVideoMap = {
     '01': `${assetBase}videos/drone-1.mp4`,
@@ -497,8 +745,12 @@ export default function OperatorDefault() {
   const droneCardRefs = React.useRef({});
   const selectionInteractionRef = React.useRef(0);
   const inlineVideoRefs = React.useRef({});
+  const widgetVideoRefs = React.useRef({});
+  const widgetInteractionRef = React.useRef(null);
+  const widgetZCounterRef = React.useRef(1);
   const feedPlaybackTimeRef = React.useRef({});
   const enlargedVideoRef = React.useRef(null);
+  const rootViewportRef = React.useRef(null);
   const getVisionMode = useCallback((modeKey) => VISION_MODES[modeKey] || VISION_MODES.EO, []);
 
   const setAltitudeDraft = useCallback((key, value) => {
@@ -531,6 +783,123 @@ export default function OperatorDefault() {
     if (!droneId || !videoEl) return;
     feedPlaybackTimeRef.current[droneId] = videoEl.currentTime || 0;
   }, []);
+  const seekFeedToStoredTime = useCallback((droneId, videoEl, fallbackTime = 0) => {
+    if (!droneId || !videoEl) return;
+    const resumeTime = feedPlaybackTimeRef.current[droneId] ?? fallbackTime ?? 0;
+    const duration = Number(videoEl.duration);
+    if (!Number.isFinite(resumeTime) || resumeTime <= 0 || !Number.isFinite(duration) || duration <= 0) return;
+    videoEl.currentTime = Math.min(resumeTime, Math.max(0, duration - 0.05));
+  }, []);
+  const freezeFeedAtLastFrame = useCallback((droneId, videoEl) => {
+    if (!droneId || !videoEl) return;
+    const duration = Number(videoEl.duration);
+    if (Number.isFinite(duration) && duration > 0) {
+      const finalFrameTime = Math.max(0, duration - 0.05);
+      videoEl.currentTime = finalFrameTime;
+      feedPlaybackTimeRef.current[droneId] = finalFrameTime;
+    }
+    videoEl.pause();
+  }, []);
+  const getLiveDroneFeedData = useCallback((droneId, widgetState = null) => {
+    if (!droneId) return null;
+    const ownerSwarm = telemetry.swarms.find((swarm) => swarm.drones.some((drone) => drone.id === droneId)) || null;
+    const swarmDrone = ownerSwarm?.drones.find((drone) => drone.id === droneId) || null;
+    const independentDrone = telemetry.unassignedDrones?.find((drone) => drone.id === droneId) || null;
+    const liveDrone = swarmDrone || independentDrone;
+    if (!liveDrone) return null;
+    return {
+      ...liveDrone,
+      ownerSwarm,
+      videoSrc: widgetState?.videoSrc || droneVideoMap[droneId] || droneVideoMap['01'],
+      visionMode: widgetState?.visionMode || 'EO',
+      playbackTime: widgetState?.playbackTime ?? feedPlaybackTimeRef.current[droneId] ?? 0
+    };
+  }, [telemetry, droneVideoMap]);
+  const openFloatingFeedWidget = useCallback((drone, ownerSwarm) => {
+    if (!drone?.id) return;
+    const widgetId = `widget-${drone.id}`;
+    const playbackTime = inlineVideoRefs.current[drone.id]?.currentTime ?? feedPlaybackTimeRef.current[drone.id] ?? 0;
+    widgetZCounterRef.current += 1;
+    setFloatingFeedWidgets(prev => {
+      const existing = prev.find(widget => widget.id === widgetId);
+      if (existing) {
+        return prev.map(widget => widget.id === widgetId ? {
+          ...widget,
+          zIndex: widgetZCounterRef.current,
+          playbackTime
+        } : widget);
+      }
+
+      const nextWidget = {
+        id: widgetId,
+        droneId: drone.id,
+        swarmId: ownerSwarm?.id || null,
+        videoSrc: droneVideoMap[drone.id] || droneVideoMap['01'],
+        visionMode: 'EO',
+        aiHudEnabled: false,
+        playbackTime,
+        x: 420 + (prev.length % 3) * 46,
+        y: 120 + (prev.length % 3) * 34,
+        width: 420,
+        height: 248,
+        zIndex: widgetZCounterRef.current
+      };
+
+      return [...prev.slice(Math.max(0, prev.length - 2)), nextWidget];
+    });
+  }, [droneVideoMap]);
+  const closeFloatingFeedWidget = useCallback((widgetId) => {
+    setFloatingFeedWidgets(prev => prev.filter(widget => widget.id !== widgetId));
+    delete widgetVideoRefs.current[widgetId];
+  }, []);
+  const updateFloatingFeedWidget = useCallback((widgetId, updates) => {
+    setFloatingFeedWidgets(prev => prev.map(widget => widget.id === widgetId ? { ...widget, ...updates } : widget));
+  }, []);
+  const focusFloatingFeedWidget = useCallback((widgetId) => {
+    widgetZCounterRef.current += 1;
+    updateFloatingFeedWidget(widgetId, { zIndex: widgetZCounterRef.current });
+  }, [updateFloatingFeedWidget]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setFeedHudTick((tick) => (tick + 1) % 100000);
+    }, 240);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const handlePointerMove = (event) => {
+      const interaction = widgetInteractionRef.current;
+      if (!interaction) return;
+      const bounds = rootViewportRef.current?.getBoundingClientRect();
+      const maxWidth = Math.max(320, (bounds?.width || window.innerWidth) - 24);
+      const maxHeight = Math.max(190, (bounds?.height || window.innerHeight) - 24);
+
+      if (interaction.type === 'move') {
+        const nextX = Math.max(8, Math.min(interaction.startX + (event.clientX - interaction.pointerStartX), maxWidth - interaction.width - 8));
+        const nextY = Math.max(8, Math.min(interaction.startY + (event.clientY - interaction.pointerStartY), maxHeight - interaction.height - 8));
+        updateFloatingFeedWidget(interaction.widgetId, { x: nextX, y: nextY });
+      }
+
+      if (interaction.type === 'resize') {
+        const nextWidth = Math.max(340, Math.min(interaction.startWidth + (event.clientX - interaction.pointerStartX), maxWidth - interaction.startX - 8));
+        const nextHeight = Math.max(210, Math.min(interaction.startHeight + (event.clientY - interaction.pointerStartY), maxHeight - interaction.startY - 8));
+        updateFloatingFeedWidget(interaction.widgetId, { width: nextWidth, height: nextHeight });
+      }
+    };
+
+    const handlePointerUp = () => {
+      widgetInteractionRef.current = null;
+    };
+
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+    };
+  }, [updateFloatingFeedWidget]);
 
   const handleUpdateWaypoint = useCallback((id, newPos) => {
     updateDraftWaypoint(id, newPos);
@@ -700,7 +1069,7 @@ export default function OperatorDefault() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', background: '#040810', position: 'relative' }}>
+    <div ref={rootViewportRef} style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', overflow: 'hidden', background: '#040810', position: 'relative' }}>
       <style>{`
         .custom-map-btn {
           background: rgba(8, 12, 20, 0.85);
@@ -1223,6 +1592,8 @@ export default function OperatorDefault() {
               telemetry={telemetry} 
               targetLock={targetLock} 
               mapCenter={mapCenter} 
+              mapZoom={mapZoomLevel}
+              onZoomChange={setMapZoomLevel}
               setTargetLock={setTargetLock} 
               isTargeting={isTargeting} 
               setFocusDrone={setFocusDrone}
@@ -1231,9 +1602,11 @@ export default function OperatorDefault() {
               autoTrack={autoTrack}
               unitSystem={unitSystem}
               onSelectionInteraction={registerSelectionInteraction}
+              activeMissionPlan={lastAIParsedCommand}
+              tacticalPhase={tacticalPhase}
             />
           ) : (
-            <MapContainer center={mapCenter} zoom={16.3} zoomControl={false} style={{ width: '100%', height: '100%' }}>
+            <MapContainer center={mapCenter} zoom={mapZoomLevel} zoomControl={false} style={{ width: '100%', height: '100%' }}>
               <TileLayer 
                 url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}&hl=en" 
                 maxZoom={22} 
@@ -1241,6 +1614,7 @@ export default function OperatorDefault() {
                 detectRetina={true} 
               />
               <MapInstanceHook />
+              <MapZoomSync onZoomChange={setMapZoomLevel} />
               <MapEventsListener setAutoTrack={setAutoTrack} isTargeting={isTargeting} onMapClick={handleMapClick} setFocusDrone={setFocusDrone} selectionInteractionRef={selectionInteractionRef} />
               <MapTracker isTargeting={isTargeting} autoTrack={autoTrack} normalizedFocusDrone={normalizedFocusDrone} />
               <ScaleControl position="bottomleft" imperial={unitSystem === 'imperial'} />
@@ -1297,9 +1671,15 @@ export default function OperatorDefault() {
                       }}
                     />
                     {swarm.waypoints.length > 0 && (
+                    <Polyline 
+                        positions={[[zoneCenter.lat, zoneCenter.lng], ...swarm.waypoints.map(w => [w.lat, w.lng])]}
+                        pathOptions={{ color: '#101826', weight: 8, opacity: 0.75 }}
+                      />
+                    )}
+                    {swarm.waypoints.length > 0 && (
                       <Polyline 
                         positions={[[zoneCenter.lat, zoneCenter.lng], ...swarm.waypoints.map(w => [w.lat, w.lng])]}
-                        pathOptions={{ color: swarm.color, weight: 1, dashArray: '5 5', opacity: 0.5 }}
+                        pathOptions={{ color: 'var(--orange-primary)', weight: 4, opacity: 0.95 }}
                       />
                     )}
                   </React.Fragment>
@@ -1422,12 +1802,7 @@ export default function OperatorDefault() {
                         setFocusDrone({ swarmId: ownerSwarm?.id || null, droneId: d.id, forcePopup: null });
                         setAutoTrack(true);
                       }}
-                      onDoubleClick={() => setEnlargedFeed({
-                        ...d,
-                        videoSrc,
-                        visionMode: 'EO',
-                        playbackTime: inlineVideoRefs.current[d.id]?.currentTime ?? feedPlaybackTimeRef.current[d.id] ?? 0
-                      })}
+                      onDoubleClick={() => openFloatingFeedWidget(d, ownerSwarm)}
                       style={{
                         position: 'relative',
                         overflow: 'hidden',
@@ -1483,10 +1858,11 @@ export default function OperatorDefault() {
                           }}
                           src={videoSrc} 
                           autoPlay
-                          loop
                           muted
                           playsInline
+                          onLoadedMetadata={(e) => seekFeedToStoredTime(d.id, e.currentTarget)}
                           onTimeUpdate={(e) => syncFeedPlaybackTime(d.id, e.currentTarget)}
+                          onEnded={(e) => freezeFeedAtLastFrame(d.id, e.currentTarget)}
                           style={{ 
                             width: '100%', 
                             height: '100%', 
@@ -1519,7 +1895,7 @@ export default function OperatorDefault() {
          </div>
          
          {/* System Logs Section */}
-         <div style={{ height: '300px', padding: '20px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)' }}>
+         <div style={{ height: '220px', padding: '20px', overflowY: 'auto', background: 'rgba(0,0,0,0.2)' }}>
             <h3 className="mono text-cyan" style={{ fontSize: '13px', marginBottom: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '4px' }}>TACTICAL_LOG (AUTO_PAN_ENABLED)</h3>
             <div className="flex-column" style={{ gap: '8px' }}>
                {tacticalLogs.map((log, i) => (
@@ -1557,6 +1933,212 @@ export default function OperatorDefault() {
            </div>
          )}
       </div>
+
+      {floatingFeedWidgets.map((widget) => {
+        const liveWidgetFeed = getLiveDroneFeedData(widget.droneId, widget);
+        const widgetMissionAssigned = Boolean(
+          liveWidgetFeed && (
+            (liveWidgetFeed.waypoints && liveWidgetFeed.waypoints.length > 0) ||
+            (liveWidgetFeed.ownerSwarm?.waypoints && liveWidgetFeed.ownerSwarm.waypoints.length > 0)
+          )
+        );
+        const widgetCanPlay = Boolean(liveWidgetFeed && isExecutionPhaseActive(tacticalPhase) && widgetMissionAssigned);
+        const widgetPlaybackTime = widgetVideoRefs.current[widget.id]?.currentTime ?? liveWidgetFeed.playbackTime ?? 0;
+        const widgetDetections = widget.aiHudEnabled
+          ? getSimulatedDetections(liveWidgetFeed.id, widgetPlaybackTime + (feedHudTick * 0.04), widget.width, widget.height - 49)
+          : [];
+        if (!liveWidgetFeed) return null;
+
+        return (
+          <div
+            key={widget.id}
+            onMouseDown={() => focusFloatingFeedWidget(widget.id)}
+            style={{
+              position: 'absolute',
+              left: widget.x,
+              top: widget.y,
+              width: widget.width,
+              height: widget.height,
+              zIndex: 1800 + (widget.zIndex || 1),
+              background: 'rgba(4, 8, 16, 0.94)',
+              border: '1px solid rgba(0, 229, 255, 0.32)',
+              boxShadow: '0 18px 44px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(0, 229, 255, 0.08)',
+              backdropFilter: 'blur(10px)',
+              overflow: 'hidden',
+              borderRadius: '10px'
+            }}
+          >
+            <div
+              onMouseDown={(event) => {
+                event.preventDefault();
+                focusFloatingFeedWidget(widget.id);
+                widgetInteractionRef.current = {
+                  type: 'move',
+                  widgetId: widget.id,
+                  pointerStartX: event.clientX,
+                  pointerStartY: event.clientY,
+                  startX: widget.x,
+                  startY: widget.y,
+                  width: widget.width,
+                  height: widget.height
+                };
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                borderBottom: '1px solid rgba(255,255,255,0.08)',
+                cursor: 'move',
+                background: 'rgba(8, 12, 20, 0.9)'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span className="mono text-cyan" style={{ fontSize: '11px' }}>UAV_{liveWidgetFeed.id}</span>
+                <span className="mono text-muted" style={{ fontSize: '9px' }}>FLOATING_FEED_WIDGET</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {Object.entries(VISION_MODES).map(([modeKey, mode]) => (
+                  <button
+                    key={`${widget.id}-${modeKey}`}
+                    type="button"
+                    onClick={() => updateFloatingFeedWidget(widget.id, { visionMode: modeKey })}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '999px',
+                      border: (widget.visionMode || 'EO') === modeKey ? '1px solid var(--cyan-primary)' : '1px solid rgba(255,255,255,0.18)',
+                      background: (widget.visionMode || 'EO') === modeKey ? 'rgba(0,229,255,0.14)' : 'rgba(255,255,255,0.02)',
+                      color: (widget.visionMode || 'EO') === modeKey ? 'var(--cyan-primary)' : '#d8e6f5',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '9px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => updateFloatingFeedWidget(widget.id, { aiHudEnabled: !widget.aiHudEnabled })}
+                  style={{
+                    marginLeft: '2px',
+                    border: widget.aiHudEnabled ? '1px solid var(--cyan-primary)' : '1px solid rgba(255,255,255,0.18)',
+                    background: widget.aiHudEnabled ? 'rgba(0,229,255,0.14)' : 'rgba(255,255,255,0.02)',
+                    color: widget.aiHudEnabled ? 'var(--cyan-primary)' : '#d8e6f5',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '9px',
+                    padding: '5px 8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  AI HUD
+                </button>
+                <button
+                  type="button"
+                  onClick={() => closeFloatingFeedWidget(widget.id)}
+                  style={{
+                    marginLeft: '4px',
+                    border: '1px solid rgba(255,107,0,0.5)',
+                    background: 'rgba(255,107,0,0.08)',
+                    color: 'var(--orange-primary)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '12px',
+                    lineHeight: 1,
+                    padding: '5px 9px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  X
+                </button>
+              </div>
+            </div>
+            <div style={{ position: 'relative', width: '100%', height: `calc(100% - 49px)` }}>
+              {!widgetCanPlay ? (
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'radial-gradient(circle at center, rgba(18, 28, 40, 0.75), rgba(3, 6, 12, 1))',
+                  color: 'rgba(255,255,255,0.78)',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '16px',
+                  letterSpacing: '0.14em'
+                }}>
+                  {widgetMissionAssigned ? 'MISSION_LINK_READY' : 'NO ACTIVE FLIGHT MISSION'}
+                </div>
+              ) : (
+                <video
+                  ref={(node) => {
+                    if (node) widgetVideoRefs.current[widget.id] = node;
+                    else delete widgetVideoRefs.current[widget.id];
+                  }}
+                  src={liveWidgetFeed.videoSrc}
+                  autoPlay
+                  muted
+                  playsInline
+                  onLoadedMetadata={(e) => seekFeedToStoredTime(liveWidgetFeed.id, e.currentTarget, widget.playbackTime ?? 0)}
+                  onTimeUpdate={(e) => syncFeedPlaybackTime(liveWidgetFeed.id, e.currentTarget)}
+                  onEnded={(e) => freezeFeedAtLastFrame(liveWidgetFeed.id, e.currentTarget)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', filter: getVisionMode(widget.visionMode || 'EO').filter }}
+                />
+              )}
+              {widget.aiHudEnabled && widgetCanPlay && (
+                <VideoAiHudOverlay detections={widgetDetections} />
+              )}
+              <div style={{ position: 'absolute', inset: 0, padding: '12px', pointerEvents: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div className="flex-between">
+                  <span className="mono" style={{ fontSize: '10px', color: 'var(--cyan-primary)', background: 'rgba(0,0,0,0.72)', padding: '2px 6px' }}>UAV_{liveWidgetFeed.id}</span>
+                  <span className="mono" style={{ fontSize: '9px', color: '#fff', background: 'rgba(0,128,96,0.72)', padding: '2px 6px' }}>
+                    {widgetCanPlay ? 'NORMAL' : 'MISSION_HOLD'}
+                  </span>
+                </div>
+                <div className="flex-between" style={{ alignItems: 'flex-end' }}>
+                  <div style={{ background: 'rgba(0,0,0,0.58)', padding: '8px 10px', borderLeft: '2px solid var(--cyan-primary)' }}>
+                    <div className="mono text-main" style={{ fontSize: '11px' }}>LAT: {liveWidgetFeed.lat.toFixed(6)}</div>
+                    <div className="mono text-main" style={{ fontSize: '11px' }}>LNG: {liveWidgetFeed.lng.toFixed(6)}</div>
+                    <div className="mono text-main" style={{ fontSize: '11px' }}>ALT: {formatAltitude(liveWidgetFeed.alt ?? 0)}</div>
+                    <div className="mono text-main" style={{ fontSize: '11px' }}>FPS: 29.97</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <span className="display text-orange" style={{ fontSize: '26px' }}>{liveWidgetFeed.pwr.toFixed(1)}%</span>
+                    <span className="mono text-muted" style={{ fontSize: '10px' }}>BATTERY</span>
+                  </div>
+                </div>
+              </div>
+              <div
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  focusFloatingFeedWidget(widget.id);
+                  widgetInteractionRef.current = {
+                    type: 'resize',
+                    widgetId: widget.id,
+                    pointerStartX: event.clientX,
+                    pointerStartY: event.clientY,
+                    startWidth: widget.width,
+                    startHeight: widget.height,
+                    startX: widget.x,
+                    startY: widget.y
+                  };
+                }}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  bottom: '8px',
+                  width: '16px',
+                  height: '16px',
+                  borderRight: '2px solid var(--cyan-primary)',
+                  borderBottom: '2px solid var(--cyan-primary)',
+                  cursor: 'nwse-resize',
+                  pointerEvents: 'auto'
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
       
       {/* Theater Mode Overlay */}
       {liveEnlargedFeed && (
@@ -1644,16 +2226,14 @@ export default function OperatorDefault() {
 	                   ref={enlargedVideoRef}
 	                   src={liveEnlargedFeed.videoSrc || droneVideoMap[liveEnlargedFeed.id] || droneVideoMap['01']} 
 	                   autoPlay
-	                   loop
 	                   muted
 	                   playsInline 
 	                   onLoadedMetadata={(e) => {
-	                     const resumeTime = liveEnlargedFeed.playbackTime ?? feedPlaybackTimeRef.current[liveEnlargedFeed.id] ?? 0;
-	                     if (Number.isFinite(resumeTime) && resumeTime > 0) {
-	                       e.currentTarget.currentTime = resumeTime;
-	                     }
+	                     const resumeTime = liveEnlargedFeed.playbackTime ?? 0;
+	                     seekFeedToStoredTime(liveEnlargedFeed.id, e.currentTarget, resumeTime);
 	                   }}
 	                   onTimeUpdate={(e) => syncFeedPlaybackTime(liveEnlargedFeed.id, e.currentTarget)}
+	                   onEnded={(e) => freezeFeedAtLastFrame(liveEnlargedFeed.id, e.currentTarget)}
 	                   className="drone-vid-bg"
 	                   style={{ filter: getVisionMode(liveEnlargedFeed.visionMode).filter }}
 	                />

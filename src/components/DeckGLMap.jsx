@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { ScatterplotLayer, PathLayer, LineLayer, TextLayer, PolygonLayer } from '@deck.gl/layers';
 import Map, { ScaleControl, useControl, Marker } from 'react-map-gl/maplibre';
 import { MapboxOverlay } from '@deck.gl/mapbox';
@@ -55,6 +55,24 @@ const getDynamicSwarmMetrics = (swarm) => {
   const radius = Math.max(100, maxDist + 40); 
   return { centerLng, centerLat, radius };
 };
+const getSwarmTrackPoint = (swarm) => {
+  if (!swarm) return null;
+  if (swarm.drones?.length) {
+    const metrics = getDynamicSwarmMetrics(swarm);
+    return {
+      lat: metrics.centerLat,
+      lng: metrics.centerLng,
+      alt: swarm.alt ?? 0,
+      speed: swarm.speed ?? 0
+    };
+  }
+  return {
+    lat: swarm.baseLat,
+    lng: swarm.baseLng,
+    alt: swarm.alt ?? 0,
+    speed: swarm.speed ?? 0
+  };
+};
 
 // Calculate camera target offset to visually center an elevated object in 3D
 const getVisualCenter = (lng, lat, alt, pitch, bearing) => {
@@ -85,6 +103,17 @@ const getTrackingAltitude = (drone) => {
   const isAscendingIntoMission = targetAlt > currentAlt && speed < 0.5;
 
   return isAscendingIntoMission ? targetAlt : currentAlt;
+};
+const getDisplayAltitude = (altitude, minimumMeters = 18) => {
+  const numericAltitude = Number(altitude ?? 0);
+  if (!Number.isFinite(numericAltitude)) return minimumMeters;
+  return Math.max(minimumMeters, numericAltitude);
+};
+const TARGET_ORANGE = [255, 107, 0];
+const getMissionMarkerAltitude = (altitude) => {
+  const numericAltitude = Number(altitude ?? 0);
+  if (!Number.isFinite(numericAltitude) || numericAltitude <= 0) return 0;
+  return Math.max(12, numericAltitude);
 };
 
 const MAP_STYLE = {
@@ -117,7 +146,7 @@ const MAP_STYLE = {
   }
 };
 
-const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock, isTargeting, setFocusDrone, focusDrone, setAutoTrack, autoTrack, unitSystem, onSelectionInteraction }, ref) => {
+const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, mapZoom, onZoomChange, setTargetLock, isTargeting, setFocusDrone, focusDrone, setAutoTrack, autoTrack, unitSystem, onSelectionInteraction, activeMissionPlan, tacticalPhase }, ref) => {
   const mapRef = React.useRef(null);
   const lastLayerClickRef = React.useRef(0);
   const isFlyingRef = React.useRef(false);
@@ -128,7 +157,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
   const [viewState, setViewState] = useState({
     longitude: mapCenter[1],
     latitude: mapCenter[0],
-    zoom: 16.3,
+    zoom: mapZoom ?? 16.3,
     pitch: 60,
     bearing: 30
   });
@@ -159,6 +188,10 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
   useEffect(() => {
     setViewState(prev => ({ ...prev, longitude: mapCenter[1], latitude: mapCenter[0] }));
   }, [mapCenter]);
+  useEffect(() => {
+    if (!Number.isFinite(mapZoom)) return;
+    setViewState(prev => Math.abs((prev.zoom ?? 0) - mapZoom) < 0.001 ? prev : { ...prev, zoom: mapZoom });
+  }, [mapZoom]);
   
   // Tactical Auto-Tracking: Center on focused drone
   // 1. Initial focus: Smoothly fly to target
@@ -276,6 +309,46 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
   };
 
   const focusedSwarmId = normalizedFocusDrone?.swarmId;
+  const shouldShowActiveMissionPlan = Boolean(
+    activeMissionPlan &&
+    (tacticalPhase === 'TRANSIT' || tacticalPhase === 'STRIKE_MONITORING' || tacticalPhase === 'COMPLETED')
+  );
+  const activeMissionLiveTrack = useMemo(() => {
+    if (!activeMissionPlan) return null;
+    if (activeMissionPlan.targetDroneId) {
+      const ownerSwarm = telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === activeMissionPlan.targetDroneId));
+      const swarmDrone = ownerSwarm?.drones?.find((drone) => drone.id === activeMissionPlan.targetDroneId);
+      const independentDrone = telemetry.unassignedDrones?.find((drone) => drone.id === activeMissionPlan.targetDroneId);
+      const drone = swarmDrone || independentDrone;
+      return drone ? { lat: drone.lat, lng: drone.lng, alt: drone.alt ?? 0 } : null;
+    }
+    const swarm = telemetry.swarms.find((item) => item.id === activeMissionPlan.swarmId);
+    return getSwarmTrackPoint(swarm);
+  }, [activeMissionPlan, telemetry]);
+  const activeMissionRemainingWaypoints = useMemo(() => {
+    if (!activeMissionPlan) return [];
+
+    if (activeMissionPlan.targetDroneId) {
+      const ownerSwarm = telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === activeMissionPlan.targetDroneId));
+      const swarmDrone = ownerSwarm?.drones?.find((drone) => drone.id === activeMissionPlan.targetDroneId);
+      const independentDrone = telemetry.unassignedDrones?.find((drone) => drone.id === activeMissionPlan.targetDroneId);
+      const drone = swarmDrone || independentDrone;
+      if (drone?.waypoints?.length) return drone.waypoints;
+    } else {
+      const swarm = telemetry.swarms.find((item) => item.id === activeMissionPlan.swarmId);
+      if (swarm?.waypoints?.length) return swarm.waypoints;
+    }
+
+    if (tacticalPhase === 'COMPLETED') {
+      const allWaypoints = activeMissionPlan.waypoints?.length
+        ? activeMissionPlan.waypoints
+        : (activeMissionPlan.destination ? [activeMissionPlan.destination] : []);
+      const finalWaypoint = allWaypoints[allWaypoints.length - 1];
+      return finalWaypoint ? [finalWaypoint] : [];
+    }
+
+    return [];
+  }, [activeMissionPlan, telemetry, tacticalPhase]);
 
   const swarmPoints = telemetry.swarms.map(s => {
     const metrics = getDynamicSwarmMetrics(s);
@@ -300,7 +373,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     const rgb = hexToRgb(s.color);
     const isFocused = focusedSwarmId === s.id;
     const hasFocus = !!focusedSwarmId;
-    const altitude = s.alt ?? 120;
+    const altitude = getDisplayAltitude(s.alt ?? s.targetAlt ?? 0, 18);
     
     // Dynamic radius based on actual drone spread
     const baseRadius = isFocused ? Math.max(120, metrics.radius) : metrics.radius;
@@ -330,7 +403,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       const alpha = hasFocus ? (isSwarmFocused ? (isFocused ? 255 : 200) : 120) : 255;
       
       // Elevate drones to 250m+ to ensure they clear the terrain
-      const droneAlt = d.alt ?? 250;
+      const droneAlt = getDisplayAltitude(d.alt ?? d.targetAlt ?? 0, 12);
       const rgb = hexToRgb(s.color);
       
       return {
@@ -349,7 +422,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       const hasFocus = !!normalizedFocusDrone;
       const alpha = hasFocus ? (isFocused ? 255 : 120) : 255;
       
-      const droneAlt = d.alt ?? 250;
+      const droneAlt = getDisplayAltitude(d.alt ?? d.targetAlt ?? 0, 12);
       return {
         position: toAglPosition(d.lng, d.lat, droneAlt, 2),
         color: [255, 204, 0, alpha], // Amber/Yellow for unassigned
@@ -372,21 +445,173 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
     isSwarmFocused: d.isSwarmFocused
   }));
 
-  const paths = telemetry.swarms.filter(s => s.waypoints?.length > 0).map(s => {
-    const metrics = getDynamicSwarmMetrics(s);
-    const rgb = hexToRgb(s.color);
-    const isFocused = focusedSwarmId === s.id;
-    const hasFocus = !!focusedSwarmId;
-    const alpha = hasFocus ? (isFocused ? 200 : 80) : 150;
-    const altitude = s.alt ?? 120;
-    return {
+  const liveMissionPathData = [
+    ...telemetry.swarms
+      .filter(s => s.waypoints?.length > 0)
+      .map(s => {
+        const metrics = getDynamicSwarmMetrics(s);
+        const rgb = hexToRgb(s.color);
+        const isFocused = focusedSwarmId === s.id;
+        const hasFocus = !!focusedSwarmId;
+        const alpha = hasFocus ? (isFocused ? 200 : 80) : 150;
+        const altitude = getDisplayAltitude(s.alt ?? s.targetAlt ?? 0, 18);
+        const routeOriginLng = Number.isFinite(s.routeOriginLng) ? s.routeOriginLng : metrics.centerLng;
+        const routeOriginLat = Number.isFinite(s.routeOriginLat) ? s.routeOriginLat : metrics.centerLat;
+        return {
+          id: `swarm-${s.id}`,
+          ownerLabel: s.name || `SWARM_${s.id}`,
+          color: [...TARGET_ORANGE, alpha],
+          labelColor: TARGET_ORANGE,
+          path: [
+            toAglPosition(routeOriginLng, routeOriginLat, 0, 1.2),
+            ...s.waypoints.map(w => toAglPosition(w.lng, w.lat, 0, 1.2))
+          ],
+          waypoints: s.waypoints.map((w, index) => ({
+            id: w.id || `swarm-${s.id}-wp-${index}`,
+            label: w.label || `WAYPOINT_${index + 1}`,
+            shortLabel: `${index + 1}`,
+            position: toAglPosition(w.lng, w.lat, 0, 3),
+            color: TARGET_ORANGE
+          }))
+        };
+      }),
+    ...(telemetry.unassignedDrones || [])
+      .filter(d => d.waypoints?.length > 0)
+      .map(d => {
+        const isFocused = normalizedFocusDrone?.droneId === d.id;
+        const hasFocus = !!normalizedFocusDrone;
+        const alpha = hasFocus ? (isFocused ? 220 : 90) : 180;
+        const altitude = getDisplayAltitude(d.alt ?? d.targetAlt ?? 0, 12);
+        const color = [255, 204, 0];
+        const routeOriginLng = Number.isFinite(d.routeOriginLng) ? d.routeOriginLng : d.lng;
+        const routeOriginLat = Number.isFinite(d.routeOriginLat) ? d.routeOriginLat : d.lat;
+        return {
+          id: `drone-${d.id}`,
+          ownerLabel: `UAV_${d.id}`,
+          color: [...TARGET_ORANGE, alpha],
+          labelColor: TARGET_ORANGE,
+          path: [
+            toAglPosition(routeOriginLng, routeOriginLat, 0, 1.2),
+            ...d.waypoints.map(w => toAglPosition(w.lng, w.lat, 0, 1.2))
+          ],
+          waypoints: d.waypoints.map((w, index) => ({
+            id: w.id || `drone-${d.id}-wp-${index}`,
+            label: w.label || `WAYPOINT_${index + 1}`,
+            shortLabel: `${index + 1}`,
+            position: toAglPosition(w.lng, w.lat, 0, 3),
+            color: TARGET_ORANGE
+          }))
+        };
+      })
+  ];
+  const activeMissionPathData = useMemo(() => {
+    if (!shouldShowActiveMissionPlan) return [];
+
+    const missionWaypoints = activeMissionRemainingWaypoints.length
+      ? activeMissionRemainingWaypoints
+      : (
+          tacticalPhase === 'COMPLETED'
+            ? activeMissionRemainingWaypoints
+            : (activeMissionPlan.destination ? [activeMissionPlan.destination] : [])
+        );
+
+    if (!missionWaypoints.length) return [];
+
+    const ownerLabel = activeMissionPlan.targetDroneId
+      ? `UAV_${activeMissionPlan.targetDroneId}`
+      : `SWARM_${activeMissionPlan.swarmId}`;
+    const ownerColor = activeMissionPlan.targetDroneId ? [255, 204, 0] : hexToRgb(
+      telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.color || '#39ff14'
+    );
+    const fallbackOriginLat = activeMissionPlan.targetDroneId
+      ? (
+          telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === activeMissionPlan.targetDroneId))
+            ?.drones?.find((drone) => drone.id === activeMissionPlan.targetDroneId)?.lat
+          ?? telemetry.unassignedDrones?.find((drone) => drone.id === activeMissionPlan.targetDroneId)?.lat
+          ?? missionWaypoints[0]?.lat
+        )
+      : (
+          telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.homeBaseLat
+          ?? telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.baseLat
+          ?? missionWaypoints[0]?.lat
+        );
+    const fallbackOriginLng = activeMissionPlan.targetDroneId
+      ? (
+          telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === activeMissionPlan.targetDroneId))
+            ?.drones?.find((drone) => drone.id === activeMissionPlan.targetDroneId)?.lng
+          ?? telemetry.unassignedDrones?.find((drone) => drone.id === activeMissionPlan.targetDroneId)?.lng
+          ?? missionWaypoints[0]?.lng
+        )
+      : (
+          telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.homeBaseLng
+          ?? telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.baseLng
+          ?? missionWaypoints[0]?.lng
+        );
+    const routeOriginLat = Number.isFinite(Number(activeMissionPlan.routeOriginLat))
+      ? Number(activeMissionPlan.routeOriginLat)
+      : fallbackOriginLat;
+    const routeOriginLng = Number.isFinite(Number(activeMissionPlan.routeOriginLng))
+      ? Number(activeMissionPlan.routeOriginLng)
+      : fallbackOriginLng;
+    const renderAltitude = getDisplayAltitude(
+      activeMissionPlan.routeAltitudeM
+      ?? (
+        activeMissionPlan.targetDroneId
+          ? telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === activeMissionPlan.targetDroneId))
+              ?.drones?.find((drone) => drone.id === activeMissionPlan.targetDroneId)?.targetAlt
+            ?? telemetry.unassignedDrones?.find((drone) => drone.id === activeMissionPlan.targetDroneId)?.targetAlt
+            ?? telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.targetAlt
+          : telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.targetAlt
+            ?? telemetry.swarms.find((swarm) => swarm.id === activeMissionPlan.swarmId)?.alt
+      )
+      ?? 120,
+      activeMissionPlan.targetDroneId ? 12 : 18
+    );
+    const markerAltitude = getMissionMarkerAltitude(activeMissionPlan.routeAltitudeM ?? renderAltitude);
+    const liveTrackLat = Number.isFinite(Number(activeMissionLiveTrack?.lat))
+      ? Number(activeMissionLiveTrack.lat)
+      : routeOriginLat;
+    const liveTrackLng = Number.isFinite(Number(activeMissionLiveTrack?.lng))
+      ? Number(activeMissionLiveTrack.lng)
+      : routeOriginLng;
+    const liveTrackAltitude = getMissionMarkerAltitude(activeMissionLiveTrack?.alt ?? activeMissionPlan.routeAltitudeM ?? 0);
+
+    return [{
+      id: `active-plan-${activeMissionPlan.swarmId || activeMissionPlan.targetDroneId || 'mission'}`,
+      ownerLabel,
+      color: [...TARGET_ORANGE, 210],
+      labelColor: TARGET_ORANGE,
       path: [
-        toAglPosition(metrics.centerLng, metrics.centerLat, altitude, 1),
-        ...s.waypoints.map(w => toAglPosition(w.lng, w.lat, altitude, 1))
+        toAglPosition(liveTrackLng, liveTrackLat, liveTrackAltitude, 1.2),
+        ...missionWaypoints.map((waypoint) => toAglPosition(waypoint.lng, waypoint.lat, markerAltitude, 1.2))
       ],
-      color: [...rgb, alpha]
-    };
-  });
+      waypoints: missionWaypoints.map((waypoint, index) => ({
+        id: waypoint.id || `active-plan-wp-${index}`,
+        label: waypoint.label || `WAYPOINT_${index + 1}`,
+        shortLabel: `${index + 1}`,
+        position: toAglPosition(waypoint.lng, waypoint.lat, markerAltitude, 3),
+        color: TARGET_ORANGE
+      }))
+    }];
+  }, [shouldShowActiveMissionPlan, activeMissionPlan, telemetry, activeMissionLiveTrack, activeMissionRemainingWaypoints, tacticalPhase]);
+  const missionPathData = shouldShowActiveMissionPlan ? activeMissionPathData : liveMissionPathData;
+  const missionWaypointMarkers = missionPathData.flatMap((entry) =>
+    entry.waypoints.map((waypoint, index) => ({
+      ...waypoint,
+      ownerLabel: entry.ownerLabel,
+      color: entry.labelColor,
+      fullLabel: `${entry.ownerLabel} // ${waypoint.label || `WAYPOINT_${index + 1}`}`,
+      coordLabel: `${waypoint.label || `WP_${index + 1}`}: ${Number(waypoint.position?.[1] ?? 0).toFixed(4)}, ${Number(waypoint.position?.[0] ?? 0).toFixed(4)}`,
+      shortLabel: waypoint.shortLabel || `${index + 1}`
+    }))
+  );
+  const missionWaypointDropLines = missionWaypointMarkers
+    .filter((waypoint) => Number(waypoint.position?.[2] ?? 0) > getTerrainElevation(waypoint.position[0], waypoint.position[1]) + 3)
+    .map((waypoint) => ({
+      sourcePosition: waypoint.position,
+      targetPosition: toAglPosition(waypoint.position[0], waypoint.position[1], 0, 0),
+      color: [...TARGET_ORANGE, 120]
+    }));
 
   const layers = [
     new ScatterplotLayer({
@@ -429,12 +654,21 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       }
     }),
     new PathLayer({
-      id: 'swarm-paths',
-      data: paths,
+      id: 'swarm-paths-glow',
+      data: missionPathData,
       getPath: d => d.path,
-      getColor: d => d.color,
-      getWidth: 2,
-      widthMinPixels: 2,
+      getColor: [12, 18, 28, 220],
+      getWidth: 8,
+      widthMinPixels: 8,
+      parameters: { depthWriteEnabled: false }
+    }),
+    new PathLayer({
+      id: 'swarm-paths',
+      data: missionPathData,
+      getPath: d => d.path,
+      getColor: [255, 107, 0, 255],
+      getWidth: 4,
+      widthMinPixels: 4,
       parameters: { depthWriteEnabled: false }
     }),
     new ScatterplotLayer({
@@ -529,6 +763,61 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         }
       }
     }),
+    new ScatterplotLayer({
+      id: 'mission-waypoint-points',
+      data: missionWaypointMarkers,
+      pickable: false,
+      stroked: true,
+      filled: true,
+      getPosition: d => d.position,
+      getFillColor: [255, 107, 0, 120],
+      getLineColor: [255, 107, 0, 255],
+      getLineWidth: 2,
+      lineWidthMinPixels: 2,
+      radiusUnits: 'meters',
+      getRadius: 11,
+      radiusMinPixels: 8,
+      radiusMaxPixels: 22,
+      parameters: { depthWriteEnabled: false },
+      updateTriggers: {
+        data: [telemetry.swarms, telemetry.unassignedDrones]
+      }
+    }),
+    new LineLayer({
+      id: 'mission-waypoint-drop-lines',
+      data: missionWaypointDropLines,
+      getSourcePosition: d => d.sourcePosition,
+      getTargetPosition: d => d.targetPosition,
+      getColor: d => d.color,
+      getWidth: 1,
+      widthMinPixels: 1,
+      parameters: { depthWriteEnabled: false },
+      updateTriggers: {
+        data: [missionWaypointDropLines]
+      }
+    }),
+    new TextLayer({
+      id: 'mission-waypoint-labels',
+      data: missionWaypointMarkers,
+      getPosition: d => [d.position[0], d.position[1], d.position[2] + 4],
+      getText: d => d.coordLabel,
+      getColor: [255, 107, 0, 255],
+      getSize: 10,
+      fontWeight: 'bold',
+      fontFamily: 'monospace',
+      getTextAnchor: 'start',
+      getAlignmentBaseline: 'bottom',
+      pixelOffset: [18, -4],
+      background: true,
+      getBackgroundColor: [8, 12, 20, 235],
+      getBorderColor: [255, 107, 0, 255],
+      getBorderWidth: 1,
+      backgroundPadding: [4, 8],
+      parameters: { depthWriteEnabled: false },
+      updateTriggers: {
+        data: [telemetry.swarms, telemetry.unassignedDrones]
+      }
+    }),
     // Target layers removed in favor of HTML Marker rendering
     new TextLayer({
       id: 'swarm-labels-minimal',
@@ -547,7 +836,7 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         const latOffset = latMeters / 111320; 
         const lngOffset = lngMeters / (111320 * Math.cos(metrics.centerLat * Math.PI / 180)); 
         
-        const renderAltitude = getTerrainElevation(metrics.centerLng, metrics.centerLat) + (s.alt ?? 120);
+        const renderAltitude = getTerrainElevation(metrics.centerLng, metrics.centerLat) + getDisplayAltitude(s.alt ?? s.targetAlt ?? 0, 18);
 
         return {
           position: [metrics.centerLng + lngOffset, metrics.centerLat + latOffset, renderAltitude],
@@ -604,6 +893,9 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
         {...viewState}
         onMove={e => {
           setViewState(e.viewState);
+          if (onZoomChange && Number.isFinite(e.viewState?.zoom)) {
+            onZoomChange(e.viewState.zoom);
+          }
           if (e.originalEvent && setAutoTrack) {
             setAutoTrack(false);
           }
@@ -632,8 +924,8 @@ const DeckGLMap = forwardRef(({ telemetry, targetLock, mapCenter, setTargetLock,
       >
         <DeckGLOverlay layers={layers} interleaved={true} />
         
-        {/* Draggable HTML Labels and Icons for Targets */}
-        {targetLock?.waypoints?.map((wp, idx) => (
+        {/* Draggable planning markers only while actively targeting */}
+        {isTargeting && targetLock?.waypoints?.map((wp, idx) => (
           <Marker
             key={wp.id}
             longitude={wp.lng}

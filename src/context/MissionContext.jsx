@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import { loadMissionHistory, saveMissionHistory } from '../lib/missionHistoryStore';
 
 const MissionContext = createContext();
 const EARTH_RADIUS_M = 6371000;
@@ -147,6 +148,40 @@ const getMissionTrackPoint = (mission, telemetry) => {
   const swarm = telemetry.swarms.find((item) => item.id === mission.swarmId);
   return getSwarmTrackPoint(swarm);
 };
+const createTelemetryHistorySnapshot = (telemetry) => ({
+  swarms: (telemetry?.swarms || []).map((swarm) => ({
+    id: swarm.id,
+    status: swarm.status,
+    role: swarm.role,
+    alt: roundTo(swarm.alt ?? 0, 1),
+    targetAlt: roundTo(swarm.targetAlt ?? 0, 1),
+    speed: roundTo(swarm.speed ?? 0, 1),
+    pwr: roundTo(swarm.pwr ?? 0, 1),
+    lat: roundTo(swarm.baseLat ?? 0, 6),
+    lng: roundTo(swarm.baseLng ?? 0, 6),
+    drones: (swarm.drones || []).map((drone) => ({
+      id: drone.id,
+      alt: roundTo(drone.alt ?? 0, 1),
+      targetAlt: roundTo(drone.targetAlt ?? 0, 1),
+      speed: roundTo(drone.speed ?? swarm.speed ?? 0, 1),
+      pwr: roundTo(drone.pwr ?? 0, 1),
+      lat: roundTo(drone.lat ?? 0, 6),
+      lng: roundTo(drone.lng ?? 0, 6),
+      waypointCount: drone.waypoints?.length || 0
+    }))
+  })),
+  unassignedDrones: (telemetry?.unassignedDrones || []).map((drone) => ({
+    id: drone.id,
+    status: drone.status || 'INDEPENDENT',
+    alt: roundTo(drone.alt ?? 0, 1),
+    targetAlt: roundTo(drone.targetAlt ?? 0, 1),
+    speed: roundTo(drone.speed ?? 0, 1),
+    pwr: roundTo(drone.pwr ?? 0, 1),
+    lat: roundTo(drone.lat ?? 0, 6),
+    lng: roundTo(drone.lng ?? 0, 6),
+    waypointCount: drone.waypoints?.length || 0
+  }))
+});
 
 export function useMission() {
   return useContext(MissionContext);
@@ -173,14 +208,45 @@ export function MissionProvider({ children }) {
     { timestamp: formatSystemTime(), message: "SYSTEM_ONLINE // ENCRYPTED_LINK_ESTABLISHED", type: "SYSTEM", coords: null },
     { timestamp: formatSystemTime(), message: "MULTI_POINT_PLANNING_ENGINE_READY", type: "SYSTEM", coords: null }
   ]);
+  const telemetryRef = useRef(null);
+  const tacticalPhaseRef = useRef('IDLE');
+  const lastAIParsedCommandRef = useRef(null);
 
   const addLog = (message, type = "INFO", coords = null) => {
-    setTacticalLogs(prev => [{
+    const occurredAt = Date.now();
+    const logEntry = {
+      id: `log-${occurredAt}-${Math.random().toString(36).slice(2, 7)}`,
       timestamp: formatSystemTime(),
+      at: occurredAt,
       message: message.toUpperCase(),
       type,
       coords
+    };
+
+    setTacticalLogs(prev => [{
+      ...logEntry
     }, ...prev].slice(0, 50));
+
+    const historyId = currentMissionHistoryIdRef.current;
+    const telemetrySnapshot = telemetryRef.current;
+    if (!historyId || !telemetrySnapshot) return;
+
+    setHistoryMissions(prev => prev.map((mission) => {
+      if (mission.id !== historyId) return mission;
+      const tacticalLog = Array.isArray(mission.tacticalLog) ? mission.tacticalLog : [];
+      return {
+        ...mission,
+        tacticalLog: [
+          {
+            ...logEntry,
+            phase: tacticalPhaseRef.current,
+            commandName: lastAIParsedCommandRef.current?.missionName || lastAIParsedCommandRef.current?.destName || null,
+            telemetrySnapshot: createTelemetryHistorySnapshot(telemetrySnapshot)
+          },
+          ...tacticalLog
+        ].slice(0, 200)
+      };
+    }));
   };
 
   const LOCATIONS = {
@@ -393,9 +459,22 @@ export function MissionProvider({ children }) {
         if (s.id === swarmId) {
           const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
           const missionTakeoffAlt = resolveMissionTakeoffAltitude(s.targetAlt ?? s.alt);
+          const routeOrigin = s.waypoints?.length
+            ? {
+                routeOriginLat: s.routeOriginLat,
+                routeOriginLng: s.routeOriginLng
+              }
+            : (() => {
+                const originPoint = getSwarmTrackPoint(s);
+                return {
+                  routeOriginLat: originPoint?.lat ?? s.baseLat,
+                  routeOriginLng: originPoint?.lng ?? s.baseLng
+                };
+              })();
           return {
             ...s,
             targetAlt: missionTakeoffAlt,
+            ...routeOrigin,
             waypoints: [...s.waypoints, ...formatted],
             drones: s.drones.map(d => ({
               ...d,
@@ -421,6 +500,7 @@ export function MissionProvider({ children }) {
               const missionTakeoffAlt = resolveMissionTakeoffAltitude(s.targetAlt ?? s.alt);
               const newDrones = s.drones.map(d => d.id === droneId ? {
                 ...d,
+                ...(d.waypoints?.length ? {} : { routeOriginLat: d.lat, routeOriginLng: d.lng }),
                 targetAlt: resolveMissionTakeoffAltitude(d.targetAlt ?? d.alt, missionTakeoffAlt),
                 waypoints: [...(d.waypoints || []), ...formatted]
               } : d);
@@ -438,6 +518,7 @@ export function MissionProvider({ children }) {
               const formatted = newPoints.map((pt, idx) => ({ ...pt, id: pt.id || Date.now() + Math.random(), label: `WP_${idx+1}` }));
               return {
                 ...d,
+                ...(d.waypoints?.length ? {} : { routeOriginLat: d.lat, routeOriginLng: d.lng }),
                 targetAlt: resolveMissionTakeoffAltitude(d.targetAlt ?? d.alt),
                 waypoints: [...(d.waypoints || []), ...formatted]
               };
@@ -458,12 +539,56 @@ export function MissionProvider({ children }) {
   const [selectedHistoryId, setSelectedHistoryId] = useState(null);
   const [currentMissionHistoryId, setCurrentMissionHistoryId] = useState(null);
   const [historyMissions, setHistoryMissions] = useState([]);
+  const [historyStoreReady, setHistoryStoreReady] = useState(false);
   const currentMissionHistoryIdRef = useRef(null);
   const historyTrackSampleRef = useRef({ historyId: null, sampledAt: 0 });
 
   useEffect(() => {
+    let isCancelled = false;
+
+    const bootstrapMissionHistory = async () => {
+      const remoteHistory = await loadMissionHistory();
+      if (isCancelled) return;
+
+      if (remoteHistory.length > 0) {
+        setHistoryMissions(remoteHistory);
+      }
+
+      setHistoryStoreReady(true);
+    };
+
+    bootstrapMissionHistory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!historyStoreReady) return undefined;
+
+    const persistTimer = window.setTimeout(() => {
+      saveMissionHistory(historyMissions);
+    }, 900);
+
+    return () => window.clearTimeout(persistTimer);
+  }, [historyMissions, historyStoreReady]);
+
+  useEffect(() => {
     currentMissionHistoryIdRef.current = currentMissionHistoryId;
   }, [currentMissionHistoryId]);
+
+  useEffect(() => {
+    telemetryRef.current = telemetry;
+  }, [telemetry]);
+
+  useEffect(() => {
+    tacticalPhaseRef.current = tacticalPhase;
+  }, [tacticalPhase]);
+
+  useEffect(() => {
+    lastAIParsedCommandRef.current = lastAIParsedCommand;
+  }, [lastAIParsedCommand]);
 
   const addMissionHistoryEvent = (historyId, label, detail, occurredAt = Date.now()) => {
     if (!historyId) return;
@@ -502,7 +627,8 @@ export function MissionProvider({ children }) {
     const focusPoint = routePoints[routePoints.length - 1] || mission.destination || { lat: USC_VITERBI_LAT, lng: USC_VITERBI_LNG };
     const newRecord = {
       id: historyId,
-      name: mission.destName || 'UNTITLED_OPS',
+      name: mission.missionName || mission.destName || 'UNTITLED_OPS',
+      notes: mission.missionNotes || '',
       date: new Date().toISOString().split('T')[0],
       status: 'EXECUTING',
       duration: '--:--',
@@ -519,6 +645,7 @@ export function MissionProvider({ children }) {
       actualRoute: [originPoint],
       startedAt,
       endedAt: null,
+      tacticalLog: [],
       timeline: [
         {
           id: `${historyId}-${startedAt}-deploy`,
@@ -626,6 +753,33 @@ export function MissionProvider({ children }) {
       };
     }));
   }, [telemetry, historyMissions]);
+
+  useEffect(() => {
+    if (!(tacticalPhase === 'TRANSIT' || tacticalPhase === 'STRIKE_MONITORING') || !lastAIParsedCommand) return;
+
+    const missionTargetsCleared = (() => {
+      if (lastAIParsedCommand.targetDroneId) {
+        const ownerSwarm = telemetry.swarms.find((swarm) => swarm.drones?.some((drone) => drone.id === lastAIParsedCommand.targetDroneId));
+        const swarmDrone = ownerSwarm?.drones?.find((drone) => drone.id === lastAIParsedCommand.targetDroneId);
+        const independentDrone = telemetry.unassignedDrones?.find((drone) => drone.id === lastAIParsedCommand.targetDroneId);
+        const drone = swarmDrone || independentDrone;
+        return drone && (!drone.waypoints || drone.waypoints.length === 0) && !drone.returningHome;
+      }
+
+      const swarm = telemetry.swarms.find((item) => item.id === lastAIParsedCommand.swarmId);
+      return swarm && (!swarm.waypoints || swarm.waypoints.length === 0) && !swarm.returningHome;
+    })();
+
+    if (!missionTargetsCleared) return;
+
+    setTacticalPhase('COMPLETED');
+    updateMissionHistoryStatus('SUCCESS');
+    addLog(
+      `[MISSION_COMPLETE] ${lastAIParsedCommand.missionName || lastAIParsedCommand.destName || 'ACTIVE_MISSION'} objective satisfied`,
+      'TACTICAL',
+      lastAIParsedCommand.destination || null
+    );
+  }, [telemetry, tacticalPhase, lastAIParsedCommand]);
 
   // Dynamic simulation loop
   useEffect(() => {
@@ -929,27 +1083,51 @@ export function MissionProvider({ children }) {
     });
 
     const airSpeedKPH = 80;
+    const routeAltitudeM = droneId
+      ? resolveMissionTakeoffAltitude(
+          swarmId
+            ? telemetry.swarms.find((item) => item.id === swarmId)?.drones?.find((drone) => drone.id === droneId)?.targetAlt
+            : telemetry.unassignedDrones?.find((drone) => drone.id === droneId)?.targetAlt
+        )
+      : resolveMissionTakeoffAltitude(telemetry.swarms.find((item) => item.id === swarmId)?.targetAlt);
     
     // Calculate Path Details
     let totalDist = 0;
+    let totalTravelSeconds = 0;
     let prev = { lat: startLat, lng: startLng };
     const wpsWithETA = waypoints.map((wp, idx) => {
-       const d = Math.sqrt(Math.pow(wp.lat - prev.lat, 2) + Math.pow(wp.lng - prev.lng, 2)) * 111320;
-       totalDist += d;
-       const travelSecs = d / (airSpeedKPH / 3.6);
-       const eta = new Date(Date.now() + (totalDist / (airSpeedKPH / 3.6)) * 1000);
+       const segmentDistanceMeters = getDistanceMeters(prev.lat, prev.lng, wp.lat, wp.lng);
+       const segmentTravelSeconds = segmentDistanceMeters / (airSpeedKPH / 3.6);
+       totalDist += segmentDistanceMeters;
+       totalTravelSeconds += segmentTravelSeconds;
+       const eta = new Date(Date.now() + totalTravelSeconds * 1000);
+       const sourceLabel = idx === 0 ? assigneeName : `WAYPOINT_${idx}`;
        prev = wp;
-       return { ...wp, eta: formatSystemTime(eta), label: `WAYPOINT_${idx+1}`, distanceMeters: d };
+       return {
+         ...wp,
+         eta: formatSystemTime(eta),
+         label: `WAYPOINT_${idx + 1}`,
+         sourceLabel,
+         distanceMeters: totalDist,
+         segmentDistanceMeters,
+         durationMin: Math.ceil(totalTravelSeconds / 60),
+         segmentDurationMin: Math.max(1, Math.ceil(segmentTravelSeconds / 60)),
+         cumulativeDurationSec: Math.round(totalTravelSeconds),
+         segmentDurationSec: Math.round(segmentTravelSeconds)
+       };
     });
 
     const parsedData = {
       raw: "MANUAL_TACTICAL_PLAN",
       swarmId,
       targetDroneId: droneId,
+      routeOriginLat: startLat,
+      routeOriginLng: startLng,
       destination: waypoints[waypoints.length - 1],
       waypoints: wpsWithETA,
       destName: `MULTIPOINT_ALPHA_${assigneeName}`,
       intent: "MANUAL_PATH",
+      routeAltitudeM,
       missionWeather,
       predictedGS: airSpeedKPH,
       distanceMeters: totalDist,
@@ -1016,11 +1194,35 @@ export function MissionProvider({ children }) {
 
     const airSpeedKPH = 80;
     const predictedGS = 75;
+    const routeAltitudeM = targetDroneId
+      ? resolveMissionTakeoffAltitude(
+          telemetry.swarms.find((item) => item.drones?.some((drone) => drone.id === targetDroneId))
+            ?.drones?.find((drone) => drone.id === targetDroneId)?.targetAlt
+          ?? telemetry.unassignedDrones?.find((drone) => drone.id === targetDroneId)?.targetAlt
+        )
+      : resolveMissionTakeoffAltitude(swarm.targetAlt ?? swarm.alt);
     const flightSecsCorrected = distM / (predictedGS / 3.6);
     const eta = new Date(Date.now() + flightSecsCorrected * 1000);
 
     const parsedData = {
       raw: text, swarmId, targetDroneId, destination, destName, intent, missionWeather,
+      routeAltitudeM,
+      routeOriginLat: targetDroneId
+        ? (
+            telemetry.swarms.find((item) => item.drones?.some((drone) => drone.id === targetDroneId))
+              ?.drones?.find((drone) => drone.id === targetDroneId)?.lat
+            ?? telemetry.unassignedDrones?.find((drone) => drone.id === targetDroneId)?.lat
+            ?? swarm.baseLat
+          )
+        : swarm.baseLat,
+      routeOriginLng: targetDroneId
+        ? (
+            telemetry.swarms.find((item) => item.drones?.some((drone) => drone.id === targetDroneId))
+              ?.drones?.find((drone) => drone.id === targetDroneId)?.lng
+            ?? telemetry.unassignedDrones?.find((drone) => drone.id === targetDroneId)?.lng
+            ?? swarm.baseLng
+          )
+        : swarm.baseLng,
       predictedGS, distanceMeters: distM, durationMin: Math.ceil(flightSecsCorrected / 60),
       eta: formatSystemTime(eta), timestamp: formatSystemTime(), confidence: 0.94,
       tasks: [{ id: 1, action: 'DEPARTURE', status: 'PENDING' }, { id: 2, action: 'TRANSIT', status: 'PENDING' }]

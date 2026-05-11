@@ -3,7 +3,7 @@ import { useMission } from '../context/MissionContext';
 import logoUrl from '../assets/logo.svg';
 
 export default function TopNav() {
-  const { role, lastAIParsedCommand, formatWind, formatTemperature, formatVisibility } = useMission();
+  const { role, tacticalPhase, lastAIParsedCommand, formatWind, formatTemperature, formatVisibility } = useMission();
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -13,6 +13,10 @@ export default function TopNav() {
 
   const dateStr = time.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
   const timeStr = time.toLocaleTimeString('en-GB', { hour12: false }) + ' UTC';
+  const missionIsActive = tacticalPhase === 'TRANSIT' || tacticalPhase === 'STRIKE_MONITORING' || tacticalPhase === 'COMPLETED';
+  const missionTitle = missionIsActive && lastAIParsedCommand
+    ? `MISSION: ${(lastAIParsedCommand.missionName || lastAIParsedCommand.destName || 'ACTIVE OP').replace(/_/g, ' ').toUpperCase()}`
+    : null;
   const stationWeather = lastAIParsedCommand?.missionWeather || {
     condition: 'STABLE',
     windSpeedKts: 6,
@@ -32,7 +36,9 @@ export default function TopNav() {
           </h1>
         </div>
         <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }}></div>
-        <span className="mono text-main" style={{ letterSpacing: '1px', fontWeight: 'bold' }}>MISSION: ISLAND RECON</span>
+        {missionTitle && (
+          <span className="mono text-main" style={{ letterSpacing: '1px', fontWeight: 'bold' }}>{missionTitle}</span>
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
