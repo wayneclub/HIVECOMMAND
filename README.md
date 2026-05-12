@@ -8,6 +8,17 @@ This prototype was developed as part of [USC's Hacking 4 Defense (H4D) — Navy 
 
 ---
 
+## Live Demo
+
+**[https://wayneclub.github.io/HIVECOMMAND/](https://wayneclub.github.io/HIVECOMMAND/)**
+
+| Field | Value |
+|---|---|
+| Username | `observer.sierra` |
+| Password | `123456` |
+
+---
+
 ## Overview
 
 Modern drone operators face significant cognitive overload when supervising multiple UAVs simultaneously. HIVECOMMAND tackles this by providing:

@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 public/videos/_encoded/
 public/videos/.tmp-compress/
+
+# Claude Code worktrees
+.claude/worktrees/
