@@ -12,13 +12,17 @@ import CommanderApproval from './views/CommanderApproval';
 import CommanderDetailedMonitor from './views/CommanderDetailedMonitor';
 import MissionPostMortem from './views/MissionPostMortem';
 import RBACSettings from './views/RBACSettings'; // We will create this next
+import ProfileHub from './views/ProfileHub';
+import DashboardHome from './views/DashboardHome';
 
 function MainLayout() {
-  const { activeScreen } = useMission();
+  const mission = useMission() || {};
+  const { activeScreen = 11, currentUser = null } = mission;
+  const effectiveScreen = currentUser ? activeScreen : (activeScreen === 10 ? 10 : 11);
 
   const renderScreen = () => {
-    console.log("[DEBUG] Rendering screen:", activeScreen);
-    switch(activeScreen) {
+    console.log("[DEBUG] Rendering screen:", effectiveScreen);
+    switch(effectiveScreen) {
       case 1: return <OperatorDefault />;
       case 2: return <VoiceCaptureModal />;
       case 3: return <AIParsedReview />;
@@ -27,6 +31,8 @@ function MainLayout() {
       case 7: return <CommanderDetailedMonitor />;
       case 8: return <MissionPostMortem />;
       case 9: return <RBACSettings />;
+      case 10: return <ProfileHub />;
+      case 11: return <DashboardHome />;
       default: return <OperatorDefault />;
     }
   };
@@ -36,7 +42,7 @@ function MainLayout() {
       <Sidebar />
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, position: 'relative' }}>
         <TopNav />
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} key={activeScreen}>
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }} key={effectiveScreen}>
           {renderScreen()}
         </div>
       </div>

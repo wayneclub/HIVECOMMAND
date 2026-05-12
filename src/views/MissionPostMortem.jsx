@@ -90,6 +90,95 @@ const routeMarkerIcon = (label, color) => new L.DivIcon({
   iconSize: [74, 28],
   iconAnchor: [37, 14]
 });
+const getMissionDurationSeconds = (mission) => {
+  const parsed = String(mission?.duration || '')
+    .split(':')
+    .map(Number);
+  if (parsed.length === 3 && parsed.every((value) => Number.isFinite(value))) {
+    return (parsed[0] * 3600) + (parsed[1] * 60) + parsed[2];
+  }
+  if (mission?.startedAt && mission?.endedAt) {
+    return Math.max(0, Math.round((mission.endedAt - mission.startedAt) / 1000));
+  }
+  return 0;
+};
+const formatClock = (seconds) => {
+  const total = Math.max(0, Math.round(seconds || 0));
+  const hh = String(Math.floor(total / 3600)).padStart(2, '0');
+  const mm = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+  const ss = String(total % 60).padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
+};
+const statusAccent = (status) => {
+  switch (status) {
+    case 'COMPLETED':
+    case 'SUCCESS':
+      return '#72ff90';
+    case 'ABORTED':
+      return '#ff7d3b';
+    case 'TRANSIT':
+    case 'STRIKE_MONITORING':
+    case 'EXECUTING':
+      return '#00e5ff';
+    case 'PAUSED':
+    case 'PENDING_ABORT':
+      return '#ffd36e';
+    default:
+      return '#8ea2bc';
+  }
+};
+const TinyTrendChart = ({ values = [], color = '#00e5ff', height = 68 }) => {
+  const series = values.length ? values : [0, 0, 0];
+  const width = 320;
+  const max = Math.max(...series, 1);
+  const min = Math.min(...series, 0);
+  const range = Math.max(1, max - min);
+  const points = series.map((value, index) => {
+    const x = (index / Math.max(series.length - 1, 1)) * width;
+    const y = height - (((value - min) / range) * (height - 10)) - 5;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={`history-${color.replace('#', '')}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`M0,${height} ${points.split(' ').map((point) => `L${point}`).join(' ')} L${width},${height} Z`} fill={`url(#history-${color.replace('#', '')})`} />
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" />
+      {series.map((value, index) => {
+        const x = (index / Math.max(series.length - 1, 1)) * width;
+        const y = height - (((value - min) / range) * (height - 10)) - 5;
+        return <circle key={`${index}-${value}`} cx={x} cy={y} r="2.5" fill={color} />;
+      })}
+    </svg>
+  );
+};
+const MiniStatusBars = ({ items = [] }) => {
+  const max = Math.max(...items.map((item) => item.value), 1);
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`, gap: '10px', alignItems: 'end', minHeight: '126px' }}>
+      {items.map((item) => (
+        <div key={item.label} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', height: '100%' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{
+              width: '100%',
+              height: `${Math.max(10, (item.value / max) * 100)}%`,
+              background: `linear-gradient(180deg, ${item.color}, ${item.color}1a)`,
+              border: `1px solid ${item.color}66`,
+              borderRadius: '8px 8px 0 0',
+              boxShadow: `0 0 18px ${item.color}22`
+            }} />
+          </div>
+          <div className="mono text-muted" style={{ fontSize: '9px', marginTop: '8px', textAlign: 'center' }}>{item.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 function FitHistoryRoute({ route, routeDistanceMeters }) {
   const map = useMap();
@@ -169,14 +258,136 @@ export default function MissionPostMortem() {
     || originPoint
     || [selectedMission?.centerLat || 34.0206925, selectedMission?.centerLng || -118.2895045];
   const tacticalHistory = selectedMission?.tacticalLog || [];
+  const archiveAnalytics = useMemo(() => {
+    const missions = [...historyMissions];
+    const total = missions.length;
+    const totalDistance = missions.reduce((sum, mission) => sum + getRouteDistanceMeters(mission.actualRoute?.length ? mission.actualRoute : mission.route), 0);
+    const avgDurationSeconds = total
+      ? missions.reduce((sum, mission) => sum + getMissionDurationSeconds(mission), 0) / total
+      : 0;
+    const completed = missions.filter((mission) => ['COMPLETED', 'SUCCESS'].includes(mission.status)).length;
+    const aborted = missions.filter((mission) => mission.status === 'ABORTED').length;
+    const active = missions.filter((mission) => ['EXECUTING', 'TRANSIT', 'STRIKE_MONITORING', 'PAUSED', 'PENDING_ABORT'].includes(mission.status)).length;
+    const recent = missions.slice(0, 8).reverse();
+    const durationSeries = recent.map((mission) => Math.max(1, Math.round(getMissionDurationSeconds(mission) / 60)));
+    const distanceSeries = recent.map((mission) => Math.max(1, Math.round(getRouteDistanceMeters(mission.actualRoute?.length ? mission.actualRoute : mission.route))));
+    const logSeries = recent.map((mission) => Math.max(1, (mission.tacticalLog || []).length));
+    const statusBars = [
+      { label: 'DONE', value: completed, color: '#72ff90' },
+      { label: 'LIVE', value: active, color: '#00e5ff' },
+      { label: 'ABRT', value: aborted, color: '#ff7d3b' }
+    ];
+    const operatorCounts = Object.entries(
+      missions.reduce((acc, mission) => {
+        const key = mission.operatorName || 'UNKNOWN';
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {})
+    )
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+    const avgAssetCount = total ? missions.reduce((sum, mission) => sum + Number(mission.assets || 0), 0) / total : 0;
+    return {
+      total,
+      totalDistance,
+      avgDurationSeconds,
+      completed,
+      aborted,
+      active,
+      durationSeries,
+      distanceSeries,
+      logSeries,
+      statusBars,
+      operatorCounts,
+      avgAssetCount
+    };
+  }, [historyMissions]);
 
   // If no mission is selected, show the Archive List
   if (!selectedHistoryId || !selectedMission) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', padding: '32px', background: 'var(--bg-dark)', overflowY: 'auto' }}>
-        <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', marginBottom: '32px' }}>
-           <h2 className="display text-cyan" style={{ margin: 0, fontSize: '28px', letterSpacing: '2px' }}>MISSION_HISTORY_ARCHIVE</h2>
-           <span className="mono text-muted" style={{ fontSize: '10px' }}>ENCRYPTED_LOGS // ACCESS_LEVEL_SILVER</span>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        padding: '30px 30px 40px',
+        background: `
+          radial-gradient(circle at 14% 12%, rgba(72,215,255,0.08), transparent 22%),
+          radial-gradient(circle at 84% 10%, rgba(255,125,59,0.06), transparent 18%),
+          linear-gradient(180deg, rgba(5,10,18,0.98), rgba(4,8,15,1))
+        `,
+        overflowY: 'auto'
+      }}>
+        <div style={{ marginBottom: '24px' }}>
+           <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '10px' }}>MISSION_HISTORY</div>
+           <div className="display text-main" style={{ margin: 0, fontSize: '40px', lineHeight: 1 }}>Archive Overview</div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px', marginBottom: '20px' }}>
+          {[
+            ['TOTAL MISSIONS', archiveAnalytics.total, '#00e5ff'],
+            ['COMPLETED', archiveAnalytics.completed, '#72ff90'],
+            ['ABORTED', archiveAnalytics.aborted, '#ff7d3b'],
+            ['AVG ASSETS', archiveAnalytics.avgAssetCount.toFixed(1), '#ffd36e']
+          ].map(([label, value, color]) => (
+            <div key={label} className="glass-panel" style={{ padding: '22px', borderLeft: `4px solid ${color}` }}>
+              <div className="mono text-muted" style={{ fontSize: '10px', marginBottom: '12px' }}>{label}</div>
+              <div className="display" style={{ fontSize: '28px', color }}>{value}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr 0.9fr', gap: '18px', marginBottom: '28px' }}>
+          <div className="glass-panel" style={{ padding: '22px' }}>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.14em', marginBottom: '12px' }}>MISSION STATUS DISTRIBUTION</div>
+            <MiniStatusBars items={archiveAnalytics.statusBars} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px', marginTop: '14px' }}>
+              {archiveAnalytics.statusBars.map((item) => (
+                <div key={item.label} style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '10px 12px' }}>
+                  <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>{item.label}</div>
+                  <div className="mono" style={{ fontSize: '14px', color: item.color }}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: '22px' }}>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.14em', marginBottom: '12px' }}>MISSION TREND</div>
+            <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>DURATION // LAST 8 MISSIONS</div>
+            <TinyTrendChart values={archiveAnalytics.durationSeries} color="#00e5ff" />
+            <div className="mono text-muted" style={{ fontSize: '9px', margin: '12px 0 6px' }}>FLIGHT DISTANCE // LAST 8 MISSIONS</div>
+            <TinyTrendChart values={archiveAnalytics.distanceSeries} color="#72ff90" />
+            <div className="mono text-muted" style={{ fontSize: '9px', margin: '12px 0 6px' }}>TACTICAL LOG VOLUME // LAST 8 MISSIONS</div>
+            <TinyTrendChart values={archiveAnalytics.logSeries} color="#ffd36e" />
+          </div>
+
+          <div className="glass-panel" style={{ padding: '22px' }}>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.14em', marginBottom: '12px' }}>ARCHIVE STATISTICS</div>
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <div style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '12px' }}>
+                <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>TOTAL FLIGHT DISTANCE</div>
+                <div className="display text-main" style={{ fontSize: '22px' }}>{(archiveAnalytics.totalDistance / 1000).toFixed(1)} KM</div>
+              </div>
+              <div style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '12px' }}>
+                <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '6px' }}>AVERAGE MISSION CLOCK</div>
+                <div className="display text-main" style={{ fontSize: '22px' }}>{formatClock(archiveAnalytics.avgDurationSeconds)}</div>
+              </div>
+              <div style={{ border: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)', padding: '12px' }}>
+                <div className="mono text-muted" style={{ fontSize: '9px', marginBottom: '8px' }}>TOP OPERATORS</div>
+                <div style={{ display: 'grid', gap: '8px' }}>
+                  {archiveAnalytics.operatorCounts.length ? archiveAnalytics.operatorCounts.map(([name, count]) => (
+                    <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+                      <span className="mono text-main" style={{ fontSize: '10px' }}>{String(name).toUpperCase()}</span>
+                      <span className="mono text-cyan" style={{ fontSize: '10px' }}>{count}</span>
+                    </div>
+                  )) : (
+                    <span className="mono text-muted" style={{ fontSize: '10px' }}>NO_OPERATOR_DATA</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex-column" style={{ gap: '16px' }}>
@@ -185,14 +396,14 @@ export default function MissionPostMortem() {
               key={mission.id} 
               onClick={() => setSelectedHistoryId(mission.id)}
               className="glass-panel" 
-              style={{ 
+              style={{
                 padding: '24px', 
                 cursor: 'pointer', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'space-between',
                 transition: 'transform 0.2s, border-color 0.2s',
-                borderLeft: `4px solid ${mission.status === 'SUCCESS' ? 'var(--cyan-primary)' : 'var(--orange-alert)'}`
+                borderLeft: `4px solid ${statusAccent(mission.status)}`
               }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--cyan-primary)'; e.currentTarget.style.transform = 'translateX(8px)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateX(0)'; }}
@@ -203,6 +414,11 @@ export default function MissionPostMortem() {
                    <span className="mono text-main" style={{ fontSize: '16px', fontWeight: 'bold' }}>{mission.name}</span>
                    <span className="mono text-muted" style={{ fontSize: '10px' }}>ID: {mission.id} // DATE: {mission.date}</span>
                    <span className="mono text-muted" style={{ fontSize: '10px' }}>OPERATOR: {mission.operatorName} // COMMANDER: {mission.commanderName}</span>
+                   <span className="mono text-muted" style={{ fontSize: '10px', marginTop: '4px' }}>
+                     DIST: {(getRouteDistanceMeters(mission.actualRoute?.length ? mission.actualRoute : mission.route) / 1000).toFixed(2)} KM
+                     {' // '}
+                     LOGS: {(mission.tacticalLog || []).length}
+                   </span>
                    {mission.notes && (
                      <span className="mono text-muted" style={{ fontSize: '10px', marginTop: '6px', maxWidth: '620px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                        NOTES: {mission.notes}
@@ -218,7 +434,7 @@ export default function MissionPostMortem() {
                 </div>
                 <div className="flex-column" style={{ alignItems: 'center' }}>
                    <span className="mono text-muted" style={{ fontSize: '8px' }}>STATUS</span>
-                   <span className="mono" style={{ fontSize: '12px', color: mission.status === 'SUCCESS' ? 'var(--cyan-primary)' : 'var(--orange-alert)' }}>{mission.status}</span>
+                   <span className="mono" style={{ fontSize: '12px', color: statusAccent(mission.status) }}>{mission.status}</span>
                 </div>
                 <span className="text-cyan">➔</span>
               </div>

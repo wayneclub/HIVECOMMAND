@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { loadMissionHistory, saveMissionHistory } from '../lib/missionHistoryStore';
+import { loadAppSettings, saveAppSettings } from '../lib/appSettingsStore';
+import { syncDroneTelemetryHistory } from '../lib/droneTelemetryHistoryStore';
+import { writeDebugLog } from '../lib/debugLogStore';
+import { hashPassword, loadActiveSession, loadUsers, recordUserSessionEvent, saveActiveSession, saveUsers } from '../lib/userStore';
 
 const MissionContext = createContext();
 const EARTH_RADIUS_M = 6371000;
@@ -18,12 +22,42 @@ const DRONE_DESCENT_MPS = 3.2;
 const DEFAULT_MISSION_TAKEOFF_ALT = 120;
 const MIN_HORIZONTAL_MOTION_ALT = 12;
 const HORIZONTAL_MOTION_ALT_RATIO = 0.82;
-const DEFAULT_OPERATOR_NAME = 'Operator Indiana 1';
+const DEFAULT_OPERATOR_NAME = 'Indiana';
 const DEFAULT_COMMANDER_NAME = 'Commander Indiana 6';
+const normalizeUserName = (name = '') => String(name).replace(/^(OPERATOR|OBSERVER)\s+/i, '').trim();
+const UNIVERSAL_PASSWORD_HASH = hashPassword('123456');
+const DEFAULT_USERS = [
+  {
+    id: 'operator-indiana-1',
+    name: 'Indiana',
+    loginId: 'operator.indiana',
+    passwordHash: UNIVERSAL_PASSWORD_HASH,
+    role: 'OPERATOR',
+    icon: 'operator',
+    status: 'ACTIVE'
+  },
+  {
+    id: 'observer-sierra-2',
+    name: 'Sierra',
+    loginId: 'observer.sierra',
+    passwordHash: UNIVERSAL_PASSWORD_HASH,
+    role: 'OBSERVER',
+    icon: 'observer',
+    status: 'READY'
+  }
+];
 const USC_VITERBI_LAT = 34.0206925;
 const USC_VITERBI_LNG = -118.2895045;
+const USC_BOOKSTORE_LAT = 34.0202;
+const USC_BOOKSTORE_LNG = -118.2859;
 const LEAVEY_LIBRARY_LAT = 34.0217725;
 const LEAVEY_LIBRARY_LNG = -118.2828810;
+const DEFAULT_FEATURE_TOGGLES = {
+  map3dAllOperations: true,
+  map3dRestricted: false,
+  pendingStrikeRequests: true,
+  strikeExecutionView: true
+};
 const formatSystemTime = (date = new Date()) =>
   date.toLocaleTimeString('en-GB', {
     hour: '2-digit',
@@ -191,8 +225,11 @@ export function MissionProvider({ children }) {
   // Screen management: 1 to 9
   const [activeScreen, setActiveScreen] = useState(1);
   
-  // Role: OPERATOR or COMMANDER
+  // Role: OPERATOR or OBSERVER
   const [role, setRole] = useState('OPERATOR');
+  const [users, setUsers] = useState(DEFAULT_USERS);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [abortCountdown, setAbortCountdown] = useState(null);
   
   // Tactical Phase: IDLE, VALIDATING, AWAITING_COMMANDER, STRIKE_MONITORING, COMPLETED
   const [tacticalPhase, setTacticalPhase] = useState('IDLE');
@@ -203,6 +240,8 @@ export function MissionProvider({ children }) {
   // AI Command State
   const [lastAIParsedCommand, setLastAIParsedCommand] = useState(null);
   const [unitSystem, setUnitSystem] = useState('metric');
+  const [selectedLocationKey, setSelectedLocationKey] = useState('station (USC)');
+  const [featureToggles, setFeatureToggles] = useState(DEFAULT_FEATURE_TOGGLES);
 
   const [tacticalLogs, setTacticalLogs] = useState([
     { timestamp: formatSystemTime(), message: "SYSTEM_ONLINE // ENCRYPTED_LINK_ESTABLISHED", type: "SYSTEM", coords: null },
@@ -211,6 +250,7 @@ export function MissionProvider({ children }) {
   const telemetryRef = useRef(null);
   const tacticalPhaseRef = useRef('IDLE');
   const lastAIParsedCommandRef = useRef(null);
+  const currentUserRef = useRef(null);
 
   const addLog = (message, type = "INFO", coords = null) => {
     const occurredAt = Date.now();
@@ -226,6 +266,14 @@ export function MissionProvider({ children }) {
     setTacticalLogs(prev => [{
       ...logEntry
     }, ...prev].slice(0, 50));
+
+    writeDebugLog({
+      ...logEntry,
+      level: type === 'ALERT' ? 'ERROR' : type === 'TACTICAL' || type === 'MISSION' ? 'WARN' : 'INFO',
+      category: type,
+      userId: currentUserRef.current?.id || null,
+      role: currentUserRef.current?.role || null
+    });
 
     const historyId = currentMissionHistoryIdRef.current;
     const telemetrySnapshot = telemetryRef.current;
@@ -339,6 +387,7 @@ export function MissionProvider({ children }) {
   const changeGlobalLocation = (locationKey) => {
     const loc = LOCATIONS[locationKey];
     if (loc) {
+      setSelectedLocationKey(locationKey);
       setGlobalMapCenter([loc.lat, loc.lng]);
       setTelemetry(prev => {
         const newSwarms = prev.swarms.map((s, idx) => {
@@ -394,7 +443,7 @@ export function MissionProvider({ children }) {
       },
     ],
     unassignedDrones: [
-      { id: '05', pwr: 92, alt: 150, targetAlt: 150, lat: 34.0215925, lng: -118.2883045, homeLat: 34.0215925, homeLng: -118.2883045, waypoints: [] }
+      { id: '05', pwr: 92, alt: 150, targetAlt: 150, lat: USC_BOOKSTORE_LAT, lng: USC_BOOKSTORE_LNG, homeLat: USC_BOOKSTORE_LAT, homeLng: USC_BOOKSTORE_LNG, waypoints: [] }
     ]
   });
 
@@ -540,21 +589,75 @@ export function MissionProvider({ children }) {
   const [currentMissionHistoryId, setCurrentMissionHistoryId] = useState(null);
   const [historyMissions, setHistoryMissions] = useState([]);
   const [historyStoreReady, setHistoryStoreReady] = useState(false);
+  const [settingsStoreReady, setSettingsStoreReady] = useState(false);
+  const [usersStoreReady, setUsersStoreReady] = useState(false);
   const currentMissionHistoryIdRef = useRef(null);
   const historyTrackSampleRef = useRef({ historyId: null, sampledAt: 0 });
+  const currentUser = users.find((user) => user.id === currentUserId) || null;
 
   useEffect(() => {
     let isCancelled = false;
 
     const bootstrapMissionHistory = async () => {
       const remoteHistory = await loadMissionHistory();
+      const remoteSettings = await loadAppSettings();
+      const remoteUsers = await loadUsers();
+      const remoteSession = await loadActiveSession();
       if (isCancelled) return;
 
       if (remoteHistory.length > 0) {
         setHistoryMissions(remoteHistory);
       }
 
+      const resolvedUsers = (remoteUsers.length > 0 ? remoteUsers : DEFAULT_USERS).map((user) => {
+        const normalizedName = normalizeUserName(user.name);
+        const fallbackUser = DEFAULT_USERS.find((item) => item.id === user.id);
+        return {
+          ...user,
+          name:
+            user.id === 'observer-sierra-2' && normalizedName === 'Sierra 2'
+              ? 'Sierra'
+              : user.id === 'operator-indiana-1' && normalizedName === 'Indiana 1'
+                ? 'Indiana'
+                : normalizedName,
+          loginId: user.loginId || fallbackUser?.loginId || user.id,
+          passwordHash: UNIVERSAL_PASSWORD_HASH,
+          role: user.role || fallbackUser?.role || 'OPERATOR'
+        };
+      });
+      setUsers(resolvedUsers);
+      if (
+        remoteUsers.length === 0
+        || resolvedUsers.some((user) => !user.loginId || !user.passwordHash)
+        || resolvedUsers.some((user, index) => user.passwordHash !== remoteUsers[index]?.passwordHash)
+      ) {
+        saveUsers(resolvedUsers);
+      }
+
+      const nextUserId = remoteSession?.currentUserId && resolvedUsers.some((user) => user.id === remoteSession.currentUserId)
+        ? remoteSession.currentUserId
+        : null;
+      setCurrentUserId(nextUserId);
+      setRole((resolvedUsers.find((user) => user.id === nextUserId)?.role) || 'OPERATOR');
+      if (!remoteSession) {
+        saveActiveSession({ currentUserId: null, loggedInAt: null });
+      }
+
+      if (remoteSettings) {
+        if (remoteSettings.unitSystem === 'metric' || remoteSettings.unitSystem === 'imperial') {
+          setUnitSystem(remoteSettings.unitSystem);
+        }
+        if (remoteSettings.locationKey && LOCATIONS[remoteSettings.locationKey]) {
+          changeGlobalLocation(remoteSettings.locationKey);
+        }
+        if (remoteSettings.featureToggles && typeof remoteSettings.featureToggles === 'object') {
+          setFeatureToggles((prev) => ({ ...prev, ...remoteSettings.featureToggles }));
+        }
+      }
+
       setHistoryStoreReady(true);
+      setSettingsStoreReady(true);
+      setUsersStoreReady(true);
     };
 
     bootstrapMissionHistory();
@@ -569,10 +672,59 @@ export function MissionProvider({ children }) {
 
     const persistTimer = window.setTimeout(() => {
       saveMissionHistory(historyMissions);
+      syncDroneTelemetryHistory(historyMissions);
     }, 900);
 
     return () => window.clearTimeout(persistTimer);
   }, [historyMissions, historyStoreReady]);
+
+  useEffect(() => {
+    if (!settingsStoreReady) return undefined;
+
+    const persistTimer = window.setTimeout(() => {
+      saveAppSettings({
+        unitSystem,
+        locationKey: selectedLocationKey,
+        featureToggles
+      });
+    }, 600);
+
+    return () => window.clearTimeout(persistTimer);
+  }, [role, unitSystem, selectedLocationKey, featureToggles, settingsStoreReady]);
+
+  useEffect(() => {
+    if (!usersStoreReady) return undefined;
+
+    const persistTimer = window.setTimeout(() => {
+      saveUsers(users);
+      saveActiveSession({
+        currentUserId,
+        loggedInAt: currentUserId ? Date.now() : null
+      });
+    }, 500);
+
+    return () => window.clearTimeout(persistTimer);
+  }, [users, currentUserId, usersStoreReady]);
+
+  useEffect(() => {
+    if (!abortCountdown) return undefined;
+
+    if (abortCountdown.remaining <= 0) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setAbortCountdown((prev) => {
+        if (!prev) return null;
+        if (prev.remaining <= 1) {
+          return { ...prev, remaining: 0 };
+        }
+        return { ...prev, remaining: prev.remaining - 1 };
+      });
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [abortCountdown]);
 
   useEffect(() => {
     currentMissionHistoryIdRef.current = currentMissionHistoryId;
@@ -589,6 +741,49 @@ export function MissionProvider({ children }) {
   useEffect(() => {
     lastAIParsedCommandRef.current = lastAIParsedCommand;
   }, [lastAIParsedCommand]);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    const handleWindowError = (event) => {
+      writeDebugLog({
+        id: `err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        timestamp: formatSystemTime(),
+        at: Date.now(),
+        level: 'ERROR',
+        category: 'WINDOW_ERROR',
+        message: event.message || 'UNHANDLED_WINDOW_ERROR',
+        userId: currentUserRef.current?.id || null,
+        role: currentUserRef.current?.role || null,
+        source: event.filename || null,
+        line: event.lineno || null,
+        column: event.colno || null
+      });
+    };
+
+    const handleUnhandledRejection = (event) => {
+      writeDebugLog({
+        id: `rej-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        timestamp: formatSystemTime(),
+        at: Date.now(),
+        level: 'ERROR',
+        category: 'PROMISE_REJECTION',
+        message: event.reason?.message || String(event.reason || 'UNHANDLED_PROMISE_REJECTION'),
+        userId: currentUserRef.current?.id || null,
+        role: currentUserRef.current?.role || null
+      });
+    };
+
+    window.addEventListener('error', handleWindowError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleWindowError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   const addMissionHistoryEvent = (historyId, label, detail, occurredAt = Date.now()) => {
     if (!historyId) return;
@@ -634,7 +829,7 @@ export function MissionProvider({ children }) {
       duration: '--:--',
       assets: mission.targetDroneId ? 1 : 4,
       paths: routePoints.length || 1,
-      operatorName: DEFAULT_OPERATOR_NAME,
+      operatorName: currentUser?.name || DEFAULT_OPERATOR_NAME,
       commanderName: DEFAULT_COMMANDER_NAME,
       centerLat: focusPoint.lat,
       centerLng: focusPoint.lng,
@@ -676,7 +871,7 @@ export function MissionProvider({ children }) {
         ...mission,
         status,
         duration: overrides.duration || formatElapsedDuration(elapsedSeconds),
-        operatorName: overrides.operatorName || mission.operatorName || DEFAULT_OPERATOR_NAME,
+        operatorName: overrides.operatorName || mission.operatorName || currentUser?.name || DEFAULT_OPERATOR_NAME,
         commanderName: overrides.commanderName || mission.commanderName || DEFAULT_COMMANDER_NAME,
         endedAt: status === 'SUCCESS' || status === 'ABORTED' ? endedAt : mission.endedAt,
         ...overrides
@@ -1251,6 +1446,25 @@ export function MissionProvider({ children }) {
 
   const controlMissionFlight = ({ action, swarmId = null, droneId = null }) => {
     const historyId = currentMissionHistoryIdRef.current;
+    if (action === 'abort') {
+      const targetKey = droneId ? `drone-${droneId}` : `swarm-${swarmId}`;
+      if (abortCountdown?.targetKey === targetKey) {
+        cancelMissionAbort();
+        return;
+      }
+
+      setAbortCountdown({
+        targetKey,
+        swarmId,
+        droneId,
+        historyId,
+        remaining: 10
+      });
+      addMissionHistoryEvent(historyId, 'MISSION_ABORT_REQUESTED', `Abort requested for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}. Countdown started.`);
+      addLog(`Abort countdown started for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}`, 'ALERT');
+      return;
+    }
+
     setTelemetry(prev => {
       const nextSwarms = prev.swarms.map((swarm) => {
         if (swarmId && swarm.id !== swarmId) return swarm;
@@ -1282,18 +1496,6 @@ export function MissionProvider({ children }) {
                 };
               }
 
-              if (action === 'abort') {
-                return {
-                  ...drone,
-                  paused: false,
-                  savedWaypoints: [],
-                  returningHome: true,
-                  targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
-                  waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
-                  speed: 0
-                };
-              }
-
               return drone;
             })
           };
@@ -1317,27 +1519,6 @@ export function MissionProvider({ children }) {
             paused: false,
             waypoints: [...(swarm.savedWaypoints || [])],
             savedWaypoints: [],
-            speed: 0
-          };
-        }
-
-        if (action === 'abort') {
-          return {
-            ...swarm,
-            status: 'RETURN_TO_HOME',
-            paused: false,
-            savedWaypoints: [],
-            returningHome: true,
-            targetAlt: resolveMissionTakeoffAltitude(swarm.targetAlt ?? swarm.alt),
-            waypoints: [{ id: `rtb-${swarm.id}`, lat: swarm.homeBaseLat ?? swarm.baseLat, lng: swarm.homeBaseLng ?? swarm.baseLng, label: 'RTB_HOME' }],
-            drones: swarm.drones.map((drone) => ({
-              ...drone,
-              paused: false,
-              savedWaypoints: [],
-              returningHome: true,
-              targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt, resolveMissionTakeoffAltitude(swarm.targetAlt ?? swarm.alt)),
-              waypoints: []
-            })),
             speed: 0
           };
         }
@@ -1368,29 +1549,11 @@ export function MissionProvider({ children }) {
           };
         }
 
-        if (action === 'abort') {
-          return {
-            ...drone,
-            paused: false,
-            savedWaypoints: [],
-            returningHome: true,
-            targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
-            waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
-            speed: 0
-          };
-        }
-
         return drone;
       });
 
       return { ...prev, swarms: nextSwarms, unassignedDrones: nextIndependent };
     });
-
-    if (action === 'abort') {
-      updateMissionHistoryStatus('ABORTED');
-      addLog(`Mission abort issued for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}`, 'ALERT');
-      return;
-    }
 
     if (action === 'pause') {
       addMissionHistoryEvent(historyId, 'MISSION_PAUSED', `Holding ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`} in current airspace.`);
@@ -1483,9 +1646,202 @@ export function MissionProvider({ children }) {
     addLog(`SWARM_${swarmId} commanding altitude ${clampedAlt}m`, "FLIGHT_CTRL");
   };
 
+  const updateFeatureToggle = (toggleKey, isEnabled) => {
+    setFeatureToggles((prev) => ({
+      ...prev,
+      [toggleKey]: isEnabled
+    }));
+    addLog(`SETTINGS_${toggleKey.toUpperCase()} ${isEnabled ? 'ENABLED' : 'DISABLED'}`, 'SYSTEM');
+  };
+
+  const executeMissionAbort = ({ swarmId = null, droneId = null, historyId = currentMissionHistoryIdRef.current }) => {
+    setTelemetry(prev => {
+      const nextSwarms = prev.swarms.map((swarm) => {
+        if (droneId) {
+          if (!swarm.drones?.some((drone) => drone.id === droneId)) return swarm;
+          return {
+            ...swarm,
+            drones: swarm.drones.map((drone) => {
+              if (drone.id !== droneId) return drone;
+              return {
+                ...drone,
+                paused: false,
+                savedWaypoints: [],
+                returningHome: true,
+                targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
+                waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
+                speed: 0
+              };
+            })
+          };
+        }
+
+        if (swarmId && swarm.id === swarmId) {
+          return {
+            ...swarm,
+            paused: false,
+            savedWaypoints: [],
+            returningHome: true,
+            status: 'RTB',
+            waypoints: [{ id: `rtb-swarm-${swarm.id}`, lat: swarm.homeBaseLat ?? swarm.baseLat, lng: swarm.homeBaseLng ?? swarm.baseLng, label: 'RTB_HOME' }],
+            drones: swarm.drones.map((drone) => ({
+              ...drone,
+              paused: false,
+              savedWaypoints: [],
+              returningHome: true,
+              targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
+              waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
+              speed: 0
+            }))
+          };
+        }
+
+        return swarm;
+      });
+
+      const nextIndependent = (prev.unassignedDrones || []).map((drone) => {
+        if (drone.id !== droneId) return drone;
+        return {
+          ...drone,
+          paused: false,
+          savedWaypoints: [],
+          returningHome: true,
+          targetAlt: resolveMissionTakeoffAltitude(drone.targetAlt ?? drone.alt),
+          waypoints: [{ id: `rtb-${drone.id}`, lat: drone.homeLat ?? drone.lat, lng: drone.homeLng ?? drone.lng, label: 'RTB_HOME' }],
+          speed: 0
+        };
+      });
+
+      return { ...prev, swarms: nextSwarms, unassignedDrones: nextIndependent };
+    });
+
+    updateMissionHistoryStatus('ABORTED', {}, historyId);
+    addMissionHistoryEvent(historyId, 'MISSION_ABORT_EXECUTED', `Abort countdown expired for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}.`);
+    addLog(`Mission abort executed for ${droneId ? `UAV_${droneId}` : `SWARM_${swarmId}`}`, 'ALERT');
+  };
+
+  const cancelMissionAbort = () => {
+    if (!abortCountdown) return;
+    addMissionHistoryEvent(abortCountdown.historyId, 'MISSION_ABORT_CANCELLED', `Abort cancelled for ${abortCountdown.droneId ? `UAV_${abortCountdown.droneId}` : `SWARM_${abortCountdown.swarmId}`}.`);
+    addLog(`Abort cancelled for ${abortCountdown.droneId ? `UAV_${abortCountdown.droneId}` : `SWARM_${abortCountdown.swarmId}`}`, 'SYSTEM');
+    setAbortCountdown(null);
+  };
+
+  useEffect(() => {
+    if (!abortCountdown || abortCountdown.remaining > 0) return;
+
+    executeMissionAbort(abortCountdown);
+    setAbortCountdown(null);
+  }, [abortCountdown]);
+
+  const loginUser = (loginId, password) => {
+    const normalizedLoginId = String(loginId || '').trim().toLowerCase();
+    const passwordHash = hashPassword(password || '');
+    const nextUser = users.find((user) => String(user.loginId || '').toLowerCase() === normalizedLoginId && user.passwordHash === passwordHash);
+    if (!nextUser) {
+      return { ok: false, error: 'INVALID_CREDENTIALS' };
+    }
+    const nextUsersSnapshot = users.map((user) => user.id === nextUser.id ? { ...user, status: 'ACTIVE', lastLoginAt: Date.now() } : user);
+    setUsers(nextUsersSnapshot);
+    setCurrentUserId(nextUser.id);
+    setRole(nextUser.role);
+    setActiveScreen(1);
+    addLog(`USER_SESSION_ACTIVE ${nextUser.name.toUpperCase()}`, 'SYSTEM');
+    saveUsers(nextUsersSnapshot);
+    saveActiveSession({
+      currentUserId: nextUser.id,
+      name: nextUser.name,
+      role: nextUser.role,
+      eventType: 'LOGIN',
+      isActive: true,
+      loggedInAt: Date.now()
+    });
+    recordUserSessionEvent({ userId: nextUser.id, name: nextUser.name, role: nextUser.role, eventType: 'LOGIN' });
+    return { ok: true };
+  };
+
+  const logoutUser = () => {
+    if (currentUser) {
+      const nextUsersSnapshot = users.map((user) => user.id === currentUser.id ? { ...user, status: 'OFFLINE', lastLogoutAt: Date.now() } : user);
+      setUsers(nextUsersSnapshot);
+      addLog(`USER_SESSION_ENDED ${currentUser.name.toUpperCase()}`, 'SYSTEM');
+      saveUsers(nextUsersSnapshot);
+      saveActiveSession({
+        currentUserId: null,
+        name: currentUser.name,
+        role: currentUser.role,
+        eventType: 'LOGOUT',
+        isActive: false,
+        loggedOutAt: Date.now()
+      });
+      recordUserSessionEvent({ userId: currentUser.id, name: currentUser.name, role: currentUser.role, eventType: 'LOGOUT' });
+    }
+    setCurrentUserId(null);
+    setActiveScreen(10);
+  };
+
+  const updateUserName = (userId, nextName) => {
+    const trimmed = normalizeUserName(nextName);
+    if (!trimmed) return;
+    let nextUsersSnapshot = null;
+    setUsers((prev) => {
+      nextUsersSnapshot = prev.map((user) => user.id === userId ? { ...user, name: trimmed } : user);
+      return nextUsersSnapshot;
+    });
+    if (nextUsersSnapshot) {
+      saveUsers(nextUsersSnapshot);
+    }
+    if (currentUserId === userId) {
+      addLog(`ACTIVE_USER_RENAMED ${trimmed.toUpperCase()}`, 'SYSTEM');
+    }
+  };
+
+  const createUser = ({ name, loginId, password, role: nextRole }) => {
+    if (currentUser?.role !== 'OBSERVER') {
+      return { ok: false, error: 'OBSERVER_ONLY' };
+    }
+
+    const trimmedName = normalizeUserName(name);
+    const normalizedLoginId = String(loginId || '').trim().toLowerCase();
+    const normalizedRole = nextRole === 'OBSERVER' ? 'OBSERVER' : 'OPERATOR';
+
+    if (!trimmedName || !normalizedLoginId || !password) {
+      return { ok: false, error: 'MISSING_FIELDS' };
+    }
+
+    if (users.some((user) => String(user.loginId || '').toLowerCase() === normalizedLoginId)) {
+      return { ok: false, error: 'LOGIN_ID_EXISTS' };
+    }
+
+    const newUser = {
+      id: `${normalizedRole.toLowerCase()}-${normalizedLoginId.replace(/[^a-z0-9]+/g, '-')}`,
+      name: trimmedName,
+      loginId: normalizedLoginId,
+      passwordHash: hashPassword(password),
+      role: normalizedRole,
+      icon: normalizedRole === 'OBSERVER' ? 'observer' : 'operator',
+      status: 'READY',
+      createdBy: currentUser.id,
+      createdAt: Date.now()
+    };
+
+    const nextUsersSnapshot = [...users, newUser];
+    setUsers(nextUsersSnapshot);
+    saveUsers(nextUsersSnapshot);
+    addLog(`USER_CREATED ${normalizedRole} ${trimmedName.toUpperCase()}`, 'SYSTEM');
+    return { ok: true };
+  };
+
   const value = {
     activeScreen, setActiveScreen,
     role, setRole,
+    users,
+    currentUser,
+    currentUserId,
+    loginUser,
+    logoutUser,
+    updateUserName,
+    createUser,
     tacticalPhase, setTacticalPhase,
     telemetry, setTelemetry,
     activeFormation, setActiveFormation,
@@ -1505,10 +1861,15 @@ export function MissionProvider({ children }) {
     updateSwarmName,
     moveDroneToSwarm,
     controlMissionFlight,
+    abortCountdown,
+    cancelMissionAbort,
     updateDroneAlt,
     updateSwarmAlt,
     unitSystem,
     setUnitSystem,
+    selectedLocationKey,
+    featureToggles,
+    updateFeatureToggle,
     formatAltitude,
     formatDistance,
     formatSpeed,
@@ -1520,7 +1881,7 @@ export function MissionProvider({ children }) {
     LOCATIONS,
     globalMapCenter,
     changeGlobalLocation,
-    operatorName: DEFAULT_OPERATOR_NAME,
+    operatorName: currentUser?.name || DEFAULT_OPERATOR_NAME,
     commanderName: DEFAULT_COMMANDER_NAME
   };
 

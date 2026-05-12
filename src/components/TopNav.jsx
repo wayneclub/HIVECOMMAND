@@ -3,7 +3,16 @@ import { useMission } from '../context/MissionContext';
 import logoUrl from '../assets/logo.svg';
 
 export default function TopNav() {
-  const { role, tacticalPhase, lastAIParsedCommand, formatWind, formatTemperature, formatVisibility } = useMission();
+  const mission = useMission() || {};
+  const {
+    role = 'OBSERVER',
+    tacticalPhase = 'IDLE',
+    lastAIParsedCommand = null,
+    formatWind = (value) => value?.condition || 'STABLE',
+    formatTemperature = (value) => `${value}°C`,
+    formatVisibility = (value) => `${value} KM`,
+    currentUser = null
+  } = mission;
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -59,14 +68,22 @@ export default function TopNav() {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
            <span className="mono text-main" style={{ fontSize: '14px', letterSpacing: '1px' }}>
-             {role === 'COMMANDER' ? 'COMMANDER INDIANA 6' : 'OPERATOR INDIANA 1'}
+             {currentUser ? `${currentUser.role} ${currentUser.name}`.toUpperCase() : 'NO ACTIVE USER'}
            </span>
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-             <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
-             <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
-             <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-             <line x1="12" y1="20" x2="12.01" y2="20"></line>
-           </svg>
+           {role === 'OBSERVER' ? (
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+               <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6S2 12 2 12z"></path>
+               <circle cx="12" cy="12" r="2.8"></circle>
+             </svg>
+           ) : (
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+               <path d="M5 19l5.5-5.5"></path>
+               <path d="M14.5 9.5L20 4"></path>
+               <path d="M8 6l3 3"></path>
+               <path d="M13 11l5 5"></path>
+               <path d="M5 21l4-1 9-9-3-3-9 9-1 4z"></path>
+             </svg>
+           )}
            <div style={{ display: 'flex', gap: '2px', alignItems: 'flex-end', height: '16px' }}>
              <div style={{ width: '3px', height: '4px', background: 'var(--cyan-primary)' }}></div>
              <div style={{ width: '3px', height: '8px', background: 'var(--cyan-primary)' }}></div>

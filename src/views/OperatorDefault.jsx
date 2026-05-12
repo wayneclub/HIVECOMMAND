@@ -711,6 +711,7 @@ export default function OperatorDefault() {
     updateSwarmName,
     moveDroneToSwarm,
     controlMissionFlight,
+    abortCountdown,
     updateDroneAlt,
     updateSwarmAlt,
     tacticalPhase,
@@ -749,6 +750,7 @@ export default function OperatorDefault() {
   const widgetInteractionRef = React.useRef(null);
   const widgetZCounterRef = React.useRef(1);
   const feedPlaybackTimeRef = React.useRef({});
+  const feedEndedRef = React.useRef({});
   const enlargedVideoRef = React.useRef(null);
   const rootViewportRef = React.useRef(null);
   const getVisionMode = useCallback((modeKey) => VISION_MODES[modeKey] || VISION_MODES.EO, []);
@@ -781,14 +783,26 @@ export default function OperatorDefault() {
 
   const syncFeedPlaybackTime = useCallback((droneId, videoEl) => {
     if (!droneId || !videoEl) return;
-    feedPlaybackTimeRef.current[droneId] = videoEl.currentTime || 0;
+    const currentTime = videoEl.currentTime || 0;
+    feedPlaybackTimeRef.current[droneId] = currentTime;
+    const duration = Number(videoEl.duration);
+    if (Number.isFinite(duration) && duration > 0 && currentTime < Math.max(0, duration - 0.2)) {
+      feedEndedRef.current[droneId] = false;
+    }
   }, []);
   const seekFeedToStoredTime = useCallback((droneId, videoEl, fallbackTime = 0) => {
     if (!droneId || !videoEl) return;
-    const resumeTime = feedPlaybackTimeRef.current[droneId] ?? fallbackTime ?? 0;
     const duration = Number(videoEl.duration);
-    if (!Number.isFinite(resumeTime) || resumeTime <= 0 || !Number.isFinite(duration) || duration <= 0) return;
-    videoEl.currentTime = Math.min(resumeTime, Math.max(0, duration - 0.05));
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    const finalFrameTime = Math.max(0, duration - 0.05);
+    if (feedEndedRef.current[droneId]) {
+      videoEl.currentTime = finalFrameTime;
+      requestAnimationFrame(() => videoEl.pause());
+      return;
+    }
+    const resumeTime = feedPlaybackTimeRef.current[droneId] ?? fallbackTime ?? 0;
+    if (!Number.isFinite(resumeTime) || resumeTime <= 0) return;
+    videoEl.currentTime = Math.min(resumeTime, finalFrameTime);
   }, []);
   const freezeFeedAtLastFrame = useCallback((droneId, videoEl) => {
     if (!droneId || !videoEl) return;
@@ -797,6 +811,7 @@ export default function OperatorDefault() {
       const finalFrameTime = Math.max(0, duration - 0.05);
       videoEl.currentTime = finalFrameTime;
       feedPlaybackTimeRef.current[droneId] = finalFrameTime;
+      feedEndedRef.current[droneId] = true;
     }
     videoEl.pause();
   }, []);
@@ -1043,6 +1058,14 @@ export default function OperatorDefault() {
     : null;
   const missionExecutionActive = isExecutionPhaseActive(tacticalPhase) && Boolean(missionControlTarget);
   const missionIsPaused = Boolean(missionControlDrone?.paused || missionControlSwarm?.paused);
+  const missionAbortTargetKey = missionControlTarget
+    ? (missionControlTarget.droneId ? `drone-${missionControlTarget.droneId}` : `swarm-${missionControlTarget.swarmId}`)
+    : null;
+  const abortPendingForTarget = Boolean(
+    abortCountdown &&
+    missionAbortTargetKey &&
+    abortCountdown.targetKey === missionAbortTargetKey
+  );
 
   useEffect(() => {
     if (!normalizedFocusDrone?.droneId) return;
@@ -1858,6 +1881,7 @@ export default function OperatorDefault() {
                           }}
                           src={videoSrc} 
                           autoPlay
+                          loop={false}
                           muted
                           playsInline
                           onLoadedMetadata={(e) => seekFeedToStoredTime(d.id, e.currentTarget)}
@@ -1920,7 +1944,7 @@ export default function OperatorDefault() {
                  onClick={() => controlMissionFlight({ action: 'abort', swarmId: missionControlTarget?.swarmId ?? null, droneId: missionControlTarget?.droneId ?? null })}
                  style={{ padding: '14px 12px', borderColor: 'var(--orange-alert)', color: 'var(--orange-alert)' }}
                >
-                 ABORT
+                 {abortPendingForTarget ? `CANCEL_ABORT ${abortCountdown.remaining}s` : 'ABORT'}
                </button>
                <button
                  className="btn btn-primary"
@@ -1930,6 +1954,11 @@ export default function OperatorDefault() {
                  {missionIsPaused ? 'RESUME' : 'PAUSE'}
                </button>
              </div>
+             {abortPendingForTarget && (
+               <div className="mono text-muted" style={{ fontSize: '9px', marginTop: '10px', color: 'var(--orange-primary)' }}>
+                 ABORT WILL EXECUTE IN {abortCountdown.remaining} SECONDS UNLESS CANCELLED
+               </div>
+             )}
            </div>
          )}
       </div>
@@ -2077,6 +2106,7 @@ export default function OperatorDefault() {
                   }}
                   src={liveWidgetFeed.videoSrc}
                   autoPlay
+                  loop={false}
                   muted
                   playsInline
                   onLoadedMetadata={(e) => seekFeedToStoredTime(liveWidgetFeed.id, e.currentTarget, widget.playbackTime ?? 0)}
@@ -2226,6 +2256,7 @@ export default function OperatorDefault() {
 	                   ref={enlargedVideoRef}
 	                   src={liveEnlargedFeed.videoSrc || droneVideoMap[liveEnlargedFeed.id] || droneVideoMap['01']} 
 	                   autoPlay
+                     loop={false}
 	                   muted
 	                   playsInline 
 	                   onLoadedMetadata={(e) => {

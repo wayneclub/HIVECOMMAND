@@ -1,0 +1,415 @@
+// Source-derived dashboard layers adapted from the worldmonitor project:
+// https://github.com/koala73/worldmonitor
+
+export const WORLD_LAYER_META = {
+  conflicts: { label: 'CONFLICT ZONES', color: '#ff6e5b', icon: '◎' },
+  hotspots: { label: 'INTEL HOTSPOTS', color: '#ffb25a', icon: '◉' },
+  bases: { label: 'MILITARY ACTIVITY', color: '#48d7ff', icon: '▲' },
+  nuclear: { label: 'NUCLEAR SITES', color: '#ffd36e', icon: '⬢' },
+  spaceports: { label: 'SPACEPORTS', color: '#d07bff', icon: '✦' },
+  economic: { label: 'ECONOMIC CENTERS', color: '#72ff90', icon: '◆' }
+};
+
+export const WORLD_SOURCE_INFO = {
+  label: 'SOURCE',
+  value: 'WORLDMONITOR / OPEN GEOSPATIAL CONFIG'
+};
+
+export const WORLD_INTEL_LAYERS = [
+  {
+    id: 'conflict-iran',
+    category: 'conflicts',
+    label: 'Iran War Theater',
+    lat: 32,
+    lng: 53,
+    severity: 5,
+    detail: 'Active theater definition from source conflict layer.',
+    source: 'worldmonitor / CONFLICT_ZONES',
+    status: 'HIGH',
+    tags: ['iran', 'war', 'regional'],
+    polygon: [
+      [39.7, 44],
+      [37.5, 50.5],
+      [37.5, 57],
+      [35.5, 63.5],
+      [31.5, 63.5],
+      [26.5, 59],
+      [25.5, 56.5],
+      [27.5, 52.5],
+      [30, 47.5],
+      [35.5, 45.8],
+      [39.7, 44]
+    ]
+  },
+  {
+    id: 'conflict-ukraine',
+    category: 'conflicts',
+    label: 'Ukraine War',
+    lat: 48.5,
+    lng: 31,
+    severity: 5,
+    detail: 'Nation-scale conflict geometry centered on eastern and southern fronts.',
+    source: 'worldmonitor / CONFLICT_ZONES',
+    status: 'HIGH',
+    tags: ['ukraine', 'russia', 'frontline'],
+    polygon: [
+      [48.09, 22.137],
+      [51.89, 24.09],
+      [52.18, 27.85],
+      [52.32, 32.76],
+      [49.6, 40.18],
+      [46.1, 35.19],
+      [44.39, 33.55],
+      [46.38, 30.76],
+      [47.96, 24.58],
+      [48.09, 22.137]
+    ]
+  },
+  {
+    id: 'conflict-gaza',
+    category: 'conflicts',
+    label: 'Gaza Conflict',
+    lat: 31.5,
+    lng: 34.5,
+    severity: 5,
+    detail: 'High intensity operational zone in Gaza Strip.',
+    source: 'worldmonitor / CONFLICT_ZONES',
+    status: 'HIGH',
+    tags: ['gaza', 'israel', 'hamas'],
+    polygon: [
+      [32, 34],
+      [32, 35],
+      [31, 35],
+      [31, 34]
+    ]
+  },
+  {
+    id: 'conflict-sudan',
+    category: 'conflicts',
+    label: 'Sudan Civil War',
+    lat: 15.5,
+    lng: 30,
+    severity: 5,
+    detail: 'Wide-area displacement and multi-front combat across Sudan.',
+    source: 'worldmonitor / CONFLICT_ZONES',
+    status: 'HIGH',
+    tags: ['sudan', 'saf', 'rsf'],
+    polygon: [
+      [22, 21.8],
+      [22, 36.9],
+      [18, 38.6],
+      [9.6, 33.2],
+      [9.4, 30.2],
+      [12.5, 24],
+      [22, 21.8]
+    ]
+  },
+  {
+    id: 'conflict-myanmar',
+    category: 'conflicts',
+    label: 'Myanmar Civil War',
+    lat: 20,
+    lng: 96.5,
+    severity: 4,
+    detail: 'Source conflict zone covering nationwide junta-resistance operations.',
+    source: 'worldmonitor / CONFLICT_ZONES',
+    status: 'ELEVATED',
+    tags: ['myanmar', 'coup', 'resistance'],
+    polygon: [
+      [21, 92.2],
+      [28.3, 96],
+      [23.5, 101],
+      [10, 97],
+      [10.5, 97.5],
+      [21, 92.2]
+    ]
+  },
+  {
+    id: 'hotspot-sahel',
+    category: 'hotspots',
+    label: 'Sahel',
+    lat: 14,
+    lng: -1,
+    severity: 4,
+    detail: 'Instability, coups, insurgency, and expanding foreign influence.',
+    source: 'worldmonitor / INTEL_HOTSPOTS',
+    status: 'MONITORING',
+    tags: ['sahel', 'africa', 'insurgency']
+  },
+  {
+    id: 'hotspot-haiti',
+    category: 'hotspots',
+    label: 'Port-au-Prince',
+    lat: 18.5,
+    lng: -72.3,
+    severity: 4,
+    detail: 'Gang violence and state fragility affecting regional security posture.',
+    source: 'worldmonitor / INTEL_HOTSPOTS',
+    status: 'MONITORING',
+    tags: ['haiti', 'caribbean', 'gangs']
+  },
+  {
+    id: 'hotspot-horn-africa',
+    category: 'hotspots',
+    label: 'Horn of Africa',
+    lat: 10,
+    lng: 49,
+    severity: 4,
+    detail: 'Piracy, shipping security, and Red Sea spillover pressures.',
+    source: 'worldmonitor / INTEL_HOTSPOTS',
+    status: 'ESCALATING',
+    tags: ['red sea', 'piracy', 'djibouti']
+  },
+  {
+    id: 'hotspot-moscow',
+    category: 'hotspots',
+    label: 'Moscow',
+    lat: 55.75,
+    lng: 37.6,
+    severity: 4,
+    detail: 'Strategic capital node associated with ongoing major war activity.',
+    source: 'worldmonitor / INTEL_HOTSPOTS',
+    status: 'MONITORING',
+    tags: ['moscow', 'kremlin', 'russia']
+  },
+  {
+    id: 'hotspot-beijing',
+    category: 'hotspots',
+    label: 'Beijing',
+    lat: 39.9,
+    lng: 116.4,
+    severity: 3,
+    detail: 'Strategic state capital and PLA command center watchpoint.',
+    source: 'worldmonitor / INTEL_HOTSPOTS',
+    status: 'MONITORING',
+    tags: ['china', 'pla', 'beijing']
+  },
+  {
+    id: 'hotspot-tehran',
+    category: 'hotspots',
+    label: 'Tehran',
+    lat: 35.7,
+    lng: 51.4,
+    severity: 4,
+    detail: 'Regional escalation watchpoint connected to IRGC and nuclear posture.',
+    source: 'worldmonitor / INTEL_HOTSPOTS',
+    status: 'ESCALATING',
+    tags: ['iran', 'tehran', 'irgc']
+  },
+  {
+    id: 'base-ream',
+    category: 'bases',
+    label: 'Ream Naval Base',
+    lat: 10.5034,
+    lng: 103.609,
+    severity: 3,
+    detail: 'Chinese-linked naval access point in Cambodia.',
+    source: 'worldmonitor / MILITARY_BASES_EXPANDED',
+    status: 'ACTIVE',
+    tags: ['base', 'navy', 'cambodia']
+  },
+  {
+    id: 'base-djibouti-pla',
+    category: 'bases',
+    label: 'Chinese PLA Support Base',
+    lat: 11.5915,
+    lng: 43.0602,
+    severity: 4,
+    detail: 'PLA support base in Djibouti.',
+    source: 'worldmonitor / MILITARY_BASES_EXPANDED',
+    status: 'ACTIVE',
+    tags: ['base', 'china', 'djibouti']
+  },
+  {
+    id: 'base-ramstein',
+    category: 'bases',
+    label: 'Ramstein',
+    lat: 49.443,
+    lng: 7.77161,
+    severity: 4,
+    detail: 'Major US/NATO air base in Germany.',
+    source: 'worldmonitor / MILITARY_BASES_EXPANDED',
+    status: 'ACTIVE',
+    tags: ['base', 'nato', 'air']
+  },
+  {
+    id: 'base-al-udeid',
+    category: 'bases',
+    label: 'Al Udeid',
+    lat: 25.2793,
+    lng: 51.5224,
+    severity: 4,
+    detail: 'Regional air operations hub in Qatar.',
+    source: 'worldmonitor / MILITARY_BASES_EXPANDED',
+    status: 'ACTIVE',
+    tags: ['base', 'qatar', 'air']
+  },
+  {
+    id: 'base-kadena',
+    category: 'bases',
+    label: 'Kadena Air Base',
+    lat: 26.3545,
+    lng: 127.766,
+    severity: 4,
+    detail: 'Key airpower node in Okinawa.',
+    source: 'worldmonitor / MILITARY_BASES_EXPANDED',
+    status: 'ACTIVE',
+    tags: ['base', 'japan', 'air']
+  },
+  {
+    id: 'base-camp-humphreys',
+    category: 'bases',
+    label: 'Camp Humphreys',
+    lat: 36.9651,
+    lng: 127.033,
+    severity: 4,
+    detail: 'US Army garrison in South Korea.',
+    source: 'worldmonitor / MILITARY_BASES_EXPANDED',
+    status: 'ACTIVE',
+    tags: ['base', 'korea', 'army']
+  },
+  {
+    id: 'nuclear-zaporizhzhia',
+    category: 'nuclear',
+    label: 'Zaporizhzhia NPP',
+    lat: 47.51,
+    lng: 34.58,
+    severity: 5,
+    detail: 'Contested nuclear site in active conflict adjacency.',
+    source: 'worldmonitor / NUCLEAR_FACILITIES',
+    status: 'CONTESTED',
+    tags: ['nuclear', 'ukraine', 'plant']
+  },
+  {
+    id: 'nuclear-bushehr',
+    category: 'nuclear',
+    label: 'Bushehr',
+    lat: 28.83,
+    lng: 50.89,
+    severity: 4,
+    detail: 'Iranian nuclear power facility in high-interest regional theater.',
+    source: 'worldmonitor / NUCLEAR_FACILITIES',
+    status: 'ACTIVE',
+    tags: ['nuclear', 'iran', 'plant']
+  },
+  {
+    id: 'nuclear-natanz',
+    category: 'nuclear',
+    label: 'Natanz',
+    lat: 33.72,
+    lng: 51.73,
+    severity: 5,
+    detail: 'Iranian enrichment facility of strategic significance.',
+    source: 'worldmonitor / NUCLEAR_FACILITIES',
+    status: 'ACTIVE',
+    tags: ['nuclear', 'iran', 'enrichment']
+  },
+  {
+    id: 'nuclear-fordow',
+    category: 'nuclear',
+    label: 'Fordow',
+    lat: 34.88,
+    lng: 51,
+    severity: 5,
+    detail: 'Underground enrichment complex in Iran.',
+    source: 'worldmonitor / NUCLEAR_FACILITIES',
+    status: 'ACTIVE',
+    tags: ['nuclear', 'iran', 'fordow']
+  },
+  {
+    id: 'nuclear-dimona',
+    category: 'nuclear',
+    label: 'Dimona',
+    lat: 31,
+    lng: 35.15,
+    severity: 4,
+    detail: 'Israeli strategic nuclear site.',
+    source: 'worldmonitor / NUCLEAR_FACILITIES',
+    status: 'ACTIVE',
+    tags: ['nuclear', 'israel', 'weapons']
+  },
+  {
+    id: 'spaceport-ksc',
+    category: 'spaceports',
+    label: 'Kennedy Space Center',
+    lat: 28.57,
+    lng: -80.64,
+    severity: 3,
+    detail: 'NASA and Space Force launch complex.',
+    source: 'worldmonitor / SPACEPORTS',
+    status: 'ACTIVE',
+    tags: ['space', 'usa', 'launch']
+  },
+  {
+    id: 'spaceport-starbase',
+    category: 'spaceports',
+    label: 'Starbase',
+    lat: 25.99,
+    lng: -97.15,
+    severity: 3,
+    detail: 'High-cadence commercial launch site.',
+    source: 'worldmonitor / SPACEPORTS',
+    status: 'ACTIVE',
+    tags: ['space', 'spacex', 'launch']
+  },
+  {
+    id: 'spaceport-wenchang',
+    category: 'spaceports',
+    label: 'Wenchang SLC',
+    lat: 19.61,
+    lng: 110.95,
+    severity: 3,
+    detail: 'Major Chinese coastal launch center.',
+    source: 'worldmonitor / SPACEPORTS',
+    status: 'ACTIVE',
+    tags: ['space', 'china', 'launch']
+  },
+  {
+    id: 'economic-nyse',
+    category: 'economic',
+    label: 'NYSE',
+    lat: 40.7069,
+    lng: -74.0089,
+    severity: 3,
+    detail: 'Primary US equity market node.',
+    source: 'worldmonitor / ECONOMIC_CENTERS',
+    status: 'OPEN/CLOSE DEPENDENT',
+    tags: ['economic', 'market', 'usa']
+  },
+  {
+    id: 'economic-fed',
+    category: 'economic',
+    label: 'Federal Reserve',
+    lat: 38.8927,
+    lng: -77.0459,
+    severity: 4,
+    detail: 'USD monetary policy center.',
+    source: 'worldmonitor / ECONOMIC_CENTERS',
+    status: 'STRATEGIC',
+    tags: ['economic', 'central-bank', 'usd']
+  },
+  {
+    id: 'economic-ecb',
+    category: 'economic',
+    label: 'ECB',
+    lat: 50.1096,
+    lng: 8.6732,
+    severity: 4,
+    detail: 'European Central Bank command node.',
+    source: 'worldmonitor / ECONOMIC_CENTERS',
+    status: 'STRATEGIC',
+    tags: ['economic', 'ecb', 'eur']
+  },
+  {
+    id: 'economic-hkex',
+    category: 'economic',
+    label: 'HKEX',
+    lat: 22.2833,
+    lng: 114.1577,
+    severity: 3,
+    detail: 'Asian market gateway exchange.',
+    source: 'worldmonitor / ECONOMIC_CENTERS',
+    status: 'MARKET NODE',
+    tags: ['economic', 'asia', 'exchange']
+  }
+];

@@ -5,7 +5,8 @@ const normalizeMissionRecord = (record) => ({
   plannedRoute: Array.isArray(record?.plannedRoute) ? record.plannedRoute : [],
   route: Array.isArray(record?.route) ? record.route : [],
   actualRoute: Array.isArray(record?.actualRoute) ? record.actualRoute : [],
-  timeline: Array.isArray(record?.timeline) ? record.timeline : []
+  timeline: Array.isArray(record?.timeline) ? record.timeline : [],
+  tacticalLog: Array.isArray(record?.tacticalLog) ? record.tacticalLog : []
 });
 
 export async function loadMissionHistory() {

@@ -1,15 +1,131 @@
 import React from 'react';
 import { useMission } from '../context/MissionContext';
 
+const UserRoleIcon = ({ role }) => {
+  if (role === 'OBSERVER') {
+    return (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6S2 12 2 12z"></path>
+        <circle cx="12" cy="12" r="2.8"></circle>
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 19l5.5-5.5"></path>
+      <path d="M14.5 9.5L20 4"></path>
+      <path d="M8 6l3 3"></path>
+      <path d="M13 11l5 5"></path>
+      <path d="M5 21l4-1 9-9-3-3-9 9-1 4z"></path>
+    </svg>
+  );
+};
+
+const pageBg = {
+  minHeight: '100%',
+  overflowY: 'auto',
+  background: `
+    radial-gradient(circle at 15% 12%, rgba(72, 215, 255, 0.08), transparent 24%),
+    radial-gradient(circle at 80% 10%, rgba(255, 179, 92, 0.06), transparent 20%),
+    linear-gradient(180deg, rgba(6, 12, 21, 0.98), rgba(4, 8, 16, 1))
+  `,
+  padding: '30px 30px 40px'
+};
+
+const sectionCard = {
+  border: '1px solid rgba(255,255,255,0.07)',
+  background: 'linear-gradient(180deg, rgba(13, 20, 33, 0.96), rgba(9, 14, 24, 0.94))',
+  borderRadius: '22px',
+  overflow: 'hidden',
+  boxShadow: '0 16px 36px rgba(0,0,0,0.22)'
+};
+
+const rowStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: '14px',
+  padding: '18px 20px'
+};
+
+const dividerStyle = {
+  height: '1px',
+  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)'
+};
+
+const GroupHeader = ({ title, detail }) => (
+  <div style={{ margin: '0 0 12px 6px' }}>
+    <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '6px' }}>{title}</div>
+    {detail && <div className="mono text-muted" style={{ fontSize: '10px', lineHeight: 1.6 }}>{detail}</div>}
+  </div>
+);
+
+const SettingRow = ({ icon, title, subtitle, value, accent, onClick, children, clickable = false }) => (
+  <div
+    onClick={onClick}
+    style={{
+      ...rowStyle,
+      cursor: clickable ? 'pointer' : 'default',
+      transition: 'background 0.18s ease',
+      background: clickable ? 'rgba(255,255,255,0.01)' : 'transparent'
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+      <div style={{
+        width: '38px',
+        height: '38px',
+        borderRadius: '12px',
+        border: `1px solid ${accent || 'rgba(72, 215, 255, 0.18)'}`,
+        background: accent ? `${accent}18` : 'rgba(72, 215, 255, 0.06)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0
+      }}>
+        {icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div className="display text-main" style={{ fontSize: '18px', marginBottom: subtitle ? '4px' : 0 }}>{title}</div>
+        {subtitle && <div className="mono text-muted" style={{ fontSize: '10px', lineHeight: 1.6 }}>{subtitle}</div>}
+      </div>
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+      {children || (value && <div className="mono text-main" style={{ fontSize: '11px', letterSpacing: '0.12em' }}>{value}</div>)}
+      {clickable && <span className="mono text-muted" style={{ fontSize: '14px' }}>›</span>}
+    </div>
+  </div>
+);
+
+const ChoicePill = ({ active, label, onClick }) => (
+  <button
+    onClick={onClick}
+    style={{
+      border: `1px solid ${active ? 'rgba(72, 215, 255, 0.28)' : 'rgba(255,255,255,0.08)'}`,
+      background: active ? 'linear-gradient(135deg, rgba(72, 215, 255, 0.14), rgba(72, 215, 255, 0.04))' : 'rgba(255,255,255,0.02)',
+      color: active ? '#dffcff' : 'var(--text-muted)',
+      padding: '10px 14px',
+      borderRadius: '999px',
+      cursor: 'pointer',
+      fontFamily: 'var(--font-mono)',
+      fontSize: '10px',
+      letterSpacing: '0.14em',
+      textTransform: 'uppercase'
+    }}
+  >
+    {label}
+  </button>
+);
+
 export default function RBACSettings() {
   const {
-    setRole,
     setActiveScreen,
     LOCATIONS,
-    globalMapCenter,
     changeGlobalLocation,
+    selectedLocationKey,
     unitSystem,
     setUnitSystem,
+    currentUser,
     formatAltitude,
     formatDistance,
     formatSpeed,
@@ -17,224 +133,122 @@ export default function RBACSettings() {
     formatVisibility
   } = useMission();
 
-  const handleRoleChange = (roleName) => {
-    if (roleName === 'BRIGADE COMMANDER') {
-      setRole('COMMANDER');
-      setActiveScreen(1);
-    } else {
-      setRole('OPERATOR');
-      setActiveScreen(1);
-    }
-  };
-
-  const Toggle = ({ active, onClick }) => (
-    <div onClick={onClick} style={{ width: '40px', height: '20px', background: active ? 'var(--cyan-primary)' : 'var(--bg-dark)', border: '1px solid ' + (active ? 'var(--cyan-primary)' : 'var(--border-color)'), borderRadius: '10px', position: 'relative', cursor: 'pointer' }}>
-       <div style={{ position: 'absolute', top: '2px', left: active ? '22px' : '2px', width: '14px', height: '14px', borderRadius: '50%', background: active ? '#000' : 'var(--text-muted)', transition: 'left 0.2s' }}></div>
-    </div>
-  );
-
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100%', padding: '32px', gap: '32px' }}>
-      
-      {/* Left Panel: Role Architecture */}
-      <div style={{ width: '300px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-         <h3 className="mono text-main" style={{ fontSize: '14px', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-           <svg width="16" height="16" fill="none" stroke="var(--cyan-primary)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-           ROLE ARCHITECTURE
-         </h3>
+    <div style={pageBg}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) 360px', gap: '26px', alignItems: 'start' }}>
+        <div>
+          <div style={{ marginBottom: '24px' }}>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '10px' }}>SYSTEM_SETTINGS</div>
+            <div className="display text-main" style={{ fontSize: '40px', marginBottom: '10px' }}>Command Preferences</div>
+            <div className="mono text-muted" style={{ fontSize: '12px', lineHeight: 1.8, maxWidth: '760px' }}>
+              Configure active user access, station location, and measurement behavior for the tactical surface.
+            </div>
+          </div>
 
-         <div style={{ background: 'var(--bg-dark)', borderElement: '1px solid var(--border-color)', padding: '8px 16px', display: 'flex', justifyContent: 'space-between' }}>
-           <input type="text" placeholder="Enter new role name..." style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', outline: 'none', width: '100%' }} />
-           <span className="text-muted">+</span>
-         </div>
-
-         <div className="flex-column">
-            <div onClick={() => handleRoleChange('BRIGADE COMMANDER')} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}>
-               <span className="mono text-cyan" style={{ fontSize: '12px', fontWeight: 'bold' }}>BRIGADE COMMANDER</span>
-               <span className="mono text-muted" style={{ fontSize: '10px' }}>[ROOT]</span>
-            </div>
-            <div onClick={() => handleRoleChange('OPERATOR')} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}>
-               <span className="mono text-muted" style={{ fontSize: '12px' }}>TACTICAL OPERATIONS CENTER</span>
-               <span className="mono text-muted" style={{ fontSize: '10px' }}>[OPS]</span>
-            </div>
-            <div onClick={() => handleRoleChange('OPERATOR')} style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}>
-               <span className="mono text-muted" style={{ fontSize: '12px' }}>SWARM OPERATOR</span>
-               <span className="mono text-muted" style={{ fontSize: '10px' }}>[PILOT]</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)' }}>
-               <span className="mono text-muted" style={{ fontSize: '12px' }}>STRIKE COORDINATOR</span>
-               <span className="mono text-muted" style={{ fontSize: '10px' }}>[WPN]</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid var(--border-color)' }}>
-               <span className="mono text-muted" style={{ fontSize: '12px' }}>INTELLIGENCE ANALYST</span>
-               <span className="mono text-muted" style={{ fontSize: '10px' }}>[INT]</span>
-            </div>
-         </div>
-      </div>
-
-      {/* Center Panel: Configuration */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-         <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-            <div className="flex-between">
-              <div>
-                <h2 className="display text-main" style={{ margin: 0, fontSize: '24px' }}>BRIGADE COMMANDER <span style={{ fontSize: '12px', background: 'rgba(0, 229, 255, 0.1)', color: 'var(--cyan-primary)', padding: '2px 6px', verticalAlign: 'middle', marginLeft: '8px' }}>[ROOT_ACCESS]</span></h2>
-                <p className="mono text-muted" style={{ margin: '8px 0 0 0', fontSize: '10px', textTransform: 'uppercase' }}>Highest privilege tier: Complete theater oversight and authorization</p>
-              </div>
-              <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '12px', height: '12px', border: '1px solid var(--cyan-primary)' }}></div><span className="mono text-cyan" style={{ fontSize: '10px' }}>VIEW</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={{ width: '12px', height: '12px', background: 'var(--cyan-primary)' }}></div><span className="mono text-cyan" style={{ fontSize: '10px' }}>COMMAND</span></div>
+          <div style={{ display: 'grid', gap: '22px' }}>
+            <div>
+              <GroupHeader title="ACCOUNT" detail="Identity and access routing for the currently signed-in control station." />
+              <div style={sectionCard}>
+                <SettingRow
+                  icon={<UserRoleIcon role={currentUser?.role || 'OPERATOR'} />}
+                  title={currentUser ? `${currentUser.role} ${currentUser.name}` : 'No Active User'}
+                  subtitle={currentUser ? 'Current authenticated operator profile.' : 'Login required before entering tactical controls.'}
+                  value={currentUser ? 'ACTIVE' : 'OFFLINE'}
+                  accent="rgba(72, 215, 255, 0.26)"
+                  onClick={() => setActiveScreen(10)}
+                  clickable
+                />
               </div>
             </div>
-         </div>
 
-         <div style={{ marginTop: '16px' }}>
-            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>ASSIGN PEOPLE (CALLSIGN)</h4>
-            <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '16px', display: 'flex', justifyContent: 'space-between' }}>
-               <span className="mono text-main">SIG_ID_OXX...</span>
-               <span className="text-cyan">👤+</span>
+            <div>
+              <GroupHeader title="STATION" detail="Select the command location used by the map, telemetry origin, and station reference data." />
+              <div style={sectionCard}>
+                <SettingRow
+                  icon={(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0z"></path>
+                      <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                  )}
+                  title="Primary Station"
+                  subtitle="Used as the command origin and dashboard station focus."
+                  value={String(selectedLocationKey || '').toUpperCase()}
+                  accent="rgba(113, 255, 146, 0.24)"
+                />
+                <div style={dividerStyle} />
+                <div style={{ padding: '18px 20px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                    {Object.keys(LOCATIONS || {}).map((locKey) => (
+                      <ChoicePill
+                        key={locKey}
+                        active={selectedLocationKey === locKey}
+                        label={locKey}
+                        onClick={() => changeGlobalLocation(locKey)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-               <span className="mono" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', padding: '4px 8px', fontSize: '10px' }}>INDY_LEAD <span className="text-muted" style={{ marginLeft: '8px' }}>x</span></span>
-               <span className="mono" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-color)', padding: '4px 8px', fontSize: '10px' }}>COMMAND_01 <span className="text-muted" style={{ marginLeft: '8px' }}>x</span></span>
-            </div>
-         </div>
 
-         <div style={{ marginTop: '32px' }}>
-            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>US THEATER LOCATION CONFIGURATION</h4>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-               {Object.keys(LOCATIONS || {}).map(locKey => (
-                 <button 
-                   key={locKey}
-                   onClick={() => changeGlobalLocation(locKey)}
-                   style={{
-                     background: 'var(--bg-dark)', 
-                     border: '1px solid ' + (globalMapCenter[0] === LOCATIONS[locKey].lat ? 'var(--cyan-primary)' : 'var(--border-color)'), 
-                     color: globalMapCenter[0] === LOCATIONS[locKey].lat ? 'var(--cyan-primary)' : 'var(--text-muted)',
-                     padding: '8px 16px', 
-                     cursor: 'pointer',
-                     fontFamily: 'monospace',
-                     fontSize: '10px',
-                     textTransform: 'uppercase'
-                   }}
-                 >
-                   {locKey}
-                 </button>
-               ))}
+            <div>
+              <GroupHeader title="MEASUREMENTS" detail="Switch display units across altitude, speed, distance, and environmental readouts." />
+              <div style={sectionCard}>
+                <SettingRow
+                  icon={(
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 19L19 4"></path>
+                      <path d="M14 4h5v5"></path>
+                      <path d="M5 10l5 5"></path>
+                    </svg>
+                  )}
+                  title="Unit System"
+                  subtitle="Choose how tactical telemetry is formatted across the interface."
+                  value={unitSystem.toUpperCase()}
+                  accent="rgba(255, 179, 92, 0.24)"
+                />
+                <div style={dividerStyle} />
+                <div style={{ padding: '18px 20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <ChoicePill active={unitSystem === 'metric'} label="Metric" onClick={() => setUnitSystem('metric')} />
+                  <ChoicePill active={unitSystem === 'imperial'} label="Imperial" onClick={() => setUnitSystem('imperial')} />
+                </div>
+              </div>
             </div>
-         </div>
+          </div>
+        </div>
 
-         <div style={{ marginTop: '32px' }}>
-            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '16px' }}>UNIT SYSTEM</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ position: 'sticky', top: '24px', display: 'grid', gap: '18px' }}>
+          <div style={{ ...sectionCard, padding: '22px' }}>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '14px' }}>FORMAT PREVIEW</div>
+            <div style={{ display: 'grid', gap: '12px' }}>
               {[
-                { id: 'metric', label: 'METRIC', desc: 'm / km / kph / celsius' },
-                { id: 'imperial', label: 'IMPERIAL', desc: 'ft / mi / mph / fahrenheit' }
-              ].map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => setUnitSystem(option.id)}
-                  style={{
-                    textAlign: 'left',
-                    padding: '16px',
-                    cursor: 'pointer',
-                    background: unitSystem === option.id ? 'rgba(0,229,255,0.08)' : 'var(--bg-dark)',
-                    border: `1px solid ${unitSystem === option.id ? 'var(--cyan-primary)' : 'var(--border-color)'}`,
-                    color: unitSystem === option.id ? 'var(--cyan-primary)' : 'var(--text-main)'
-                  }}
-                >
-                  <div className="mono" style={{ fontSize: '12px', fontWeight: 'bold' }}>{option.label}</div>
-                  <div className="mono text-muted" style={{ fontSize: '9px', marginTop: '6px', textTransform: 'uppercase' }}>{option.desc}</div>
-                </button>
+                ['Altitude', formatAltitude(250)],
+                ['Distance', formatDistance(4200)],
+                ['Ground Speed', formatSpeed(80)],
+                ['Visibility', formatVisibility(10)],
+                ['Temperature', formatTemperature(24)]
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <span className="mono text-muted" style={{ fontSize: '10px', letterSpacing: '0.12em' }}>{label.toUpperCase()}</span>
+                  <span className="mono text-main" style={{ fontSize: '11px' }}>{value}</span>
+                </div>
               ))}
             </div>
-            <div className="glass-panel" style={{ marginTop: '16px', padding: '16px' }}>
-              <div className="mono text-cyan" style={{ fontSize: '10px', marginBottom: '12px' }}>LIVE PREVIEW</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: '10px', columnGap: '12px' }}>
-                <span className="mono text-muted" style={{ fontSize: '9px' }}>ALTITUDE</span>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatAltitude(250)}</span>
-                <span className="mono text-muted" style={{ fontSize: '9px' }}>DISTANCE</span>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatDistance(4200)}</span>
-                <span className="mono text-muted" style={{ fontSize: '9px' }}>GROUND SPEED</span>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatSpeed(80)}</span>
-                <span className="mono text-muted" style={{ fontSize: '9px' }}>VISIBILITY</span>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatVisibility(10)}</span>
-                <span className="mono text-muted" style={{ fontSize: '9px' }}>TEMPERATURE</span>
-                <span className="mono text-main" style={{ fontSize: '10px' }}>{formatTemperature(24)}</span>
-              </div>
+          </div>
+
+          <div style={{ ...sectionCard, padding: '22px' }}>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '14px' }}>DEVICE SUMMARY</div>
+            <div className="mono text-main" style={{ fontSize: '12px', lineHeight: 1.9 }}>
+              SESSION // {currentUser ? `${currentUser.role} ${currentUser.name}`.toUpperCase() : 'OFFLINE'}
+              <br />
+              STATION // {selectedLocationKey.toUpperCase()}
+              <br />
+              FORMAT // {unitSystem.toUpperCase()}
             </div>
-         </div>
-
-         <div style={{ marginTop: '32px' }}>
-            <h4 className="mono text-muted" style={{ fontSize: '10px', marginBottom: '24px' }}>FUNCTIONAL FEATURE TOGGLES</h4>
-            
-            <div className="flex-column" style={{ gap: '24px' }}>
-              <div className="flex-between">
-                 <div>
-                   <span className="mono text-main" style={{ fontSize: '12px', fontWeight: 'bold' }}>3D TACTICAL MAP - ALL OPERATIONS</span>
-                   <p className="mono text-muted" style={{ margin: '4px 0 0 0', fontSize: '8px' }}>FULL RENDERING OF THEATER GRID AND NEUTRAL ZONES</p>
-                 </div>
-                 <Toggle active={true} />
-              </div>
-
-              <div className="flex-between">
-                 <div>
-                   <span className="mono text-muted" style={{ fontSize: '12px', fontWeight: 'bold' }}>3D TACTICAL MAP - SELECT OPERATORS</span>
-                   <p className="mono text-muted" style={{ margin: '4px 0 0 0', fontSize: '8px' }}>RESTRICT VISUALIZATION TO SPECIFIC UNITS</p>
-                 </div>
-                 <Toggle active={false} />
-              </div>
-
-              <div className="flex-between">
-                 <div>
-                   <span className="mono text-main" style={{ fontSize: '12px', fontWeight: 'bold' }}>PENDING STRIKE REQUESTS - ALL OPERATIONS</span>
-                   <p className="mono text-muted" style={{ margin: '4px 0 0 0', fontSize: '8px' }}>APPROVAL AUTHORIZATION FOR ALL KINETIC ACTIONS</p>
-                 </div>
-                 <Toggle active={true} />
-              </div>
-              
-              <div className="flex-between">
-                 <div>
-                   <span className="mono text-main" style={{ fontSize: '12px', fontWeight: 'bold' }}>STRIKE EXECUTION TACTICAL VIEW - ALL OPERATIONS</span>
-                   <p className="mono text-muted" style={{ margin: '4px 0 0 0', fontSize: '8px' }}>LIVE TELEMETRY OF MUNITIONS AND IMPACT VECTORS</p>
-                 </div>
-                 <Toggle active={true} />
-              </div>
-            </div>
-         </div>
-
+          </div>
+        </div>
       </div>
-
-      {/* Right Panel: Metrics */}
-      <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-         <div className="glass-panel" style={{ padding: '24px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', right: '-20px', top: '20px', fontSize: '100px', opacity: 0.05 }}>⌘</div>
-            <span className="mono text-cyan" style={{ fontSize: '8px', background: 'rgba(0,229,255,0.1)', padding: '2px 4px' }}>SECURITY_MATRIX_ACTIVE</span>
-            <h3 className="display text-cyan" style={{ margin: '16px 0 8px 0', fontSize: '48px' }}>98.4%</h3>
-            <span className="mono text-muted" style={{ fontSize: '8px' }}>NODE INTEGRITY CONFIRMED</span>
-         </div>
-         <div className="glass-panel" style={{ padding: '24px' }}>
-            <span className="mono text-muted" style={{ fontSize: '8px' }}>ACTIVE SESSIONS</span>
-            <h3 className="display text-main" style={{ margin: '16px 0 8px 0', fontSize: '32px' }}>04</h3>
-            <div style={{ width: '100%', height: '2px', background: 'var(--border-color)', marginTop: '8px' }}>
-              <div style={{ width: '40%', height: '100%', background: 'var(--cyan-primary)' }}></div>
-            </div>
-         </div>
-         <div className="glass-panel" style={{ padding: '24px' }}>
-            <span className="mono text-muted" style={{ fontSize: '8px' }}>LAST UPDATE</span>
-            <h3 className="display text-main" style={{ margin: '16px 0 8px 0', fontSize: '32px' }}>02:44:19</h3>
-            <span className="mono text-muted" style={{ fontSize: '8px' }}>ENCRYPTED_SYNC_SUCCESS</span>
-         </div>
-         <div className="glass-panel" style={{ padding: '24px', borderLeft: '4px solid var(--orange-alert)' }}>
-            <span className="mono text-muted" style={{ fontSize: '8px' }}>SECURITY BREACHES</span>
-            <h3 className="display text-alert" style={{ margin: '16px 0 8px 0', fontSize: '32px' }}>00</h3>
-            <span className="mono text-orange" style={{ fontSize: '8px' }}>THREAT_LEVEL: ZERO</span>
-         </div>
-
-         <button className="btn btn-primary" style={{ marginTop: 'auto', background: 'var(--cyan-primary)', color: '#000', padding: '24px 16px', fontSize: '16px' }}>
-            AUTHORIZE SYSTEM RE-SYNC
-         </button>
-      </div>
-
     </div>
   );
 }
