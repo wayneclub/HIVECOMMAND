@@ -1,0 +1,6165 @@
+{
+  "conflictCountryIso": {
+    "iran": [
+      "IR"
+    ],
+    "ukraine": [
+      "UA"
+    ],
+    "sudan": [
+      "SD"
+    ],
+    "myanmar": [
+      "MM"
+    ]
+  },
+  "hotspots": [
+    {
+      "id": "sahel",
+      "name": "Sahel",
+      "subtext": "Insurgency/Coups",
+      "lat": 14,
+      "lon": -1,
+      "location": "Sahel Region (Mali, Burkina Faso, Niger)",
+      "keywords": [
+        "burkina faso",
+        "mali",
+        "niger",
+        "sahel",
+        "junta",
+        "coup",
+        "wagner",
+        "africa corps"
+      ],
+      "agencies": [
+        "Wagner",
+        "Junta Forces"
+      ],
+      "description": "Region of instability, military coups, and Islamist insurgency. Russian influence growing.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "escalating",
+      "escalationIndicators": [
+        "4 coups since 2020",
+        "French forces expelled",
+        "Wagner/Africa Corps expansion",
+        "ECOWAS sanctions"
+      ],
+      "history": {
+        "lastMajorEvent": "Niger coup",
+        "lastMajorEventDate": "2023-07-26",
+        "precedentCount": 4,
+        "precedentDescription": "4 military coups in 3 years (Mali 2020/2021, Burkina Faso 2022, Niger 2023)",
+        "cyclicalRisk": "Dry season offensives (Oct-May)"
+      },
+      "whyItMatters": "Russian influence expanding in former French sphere; jihadist groups gaining territory; migration pressure on Europe"
+    },
+    {
+      "id": "haiti",
+      "name": "Port-au-Prince",
+      "subtext": "Haiti Crisis",
+      "lat": 18.5,
+      "lon": -72.3,
+      "location": "Haiti, Caribbean",
+      "keywords": [
+        "haiti",
+        "port-au-prince",
+        "gangs",
+        "kenya mission",
+        "barbecue"
+      ],
+      "agencies": [
+        "UN",
+        "HNP",
+        "Kenya Police"
+      ],
+      "description": "Gang violence, government collapse, international security mission.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "Gangs control 80% of capital",
+        "PM resigned under pressure",
+        "Kenya-led mission deployed",
+        "Mass displacement"
+      ],
+      "history": {
+        "lastMajorEvent": "PM Henry resignation",
+        "lastMajorEventDate": "2024-03-11",
+        "precedentCount": 3,
+        "precedentDescription": "Repeated state collapse (2004 Aristide, 2021 Moïse assassination, 2024 gang takeover)",
+        "cyclicalRisk": "Hurricane season vulnerability (Jun-Nov)"
+      },
+      "whyItMatters": "Humanitarian catastrophe at US doorstep; migration surge potential; test of African-led peacekeeping"
+    },
+    {
+      "id": "horn_africa",
+      "name": "Horn of Africa",
+      "subtext": "Piracy/Conflict",
+      "lat": 10,
+      "lon": 49,
+      "location": "Somalia, Ethiopia, Djibouti",
+      "keywords": [
+        "somalia",
+        "piracy",
+        "al-shabaab",
+        "ethiopia",
+        "somaliland",
+        "red sea"
+      ],
+      "agencies": [
+        "USAFRICOM",
+        "EUNAVFOR"
+      ],
+      "description": "Resurgent piracy, Al-Shabaab activity, Ethiopia-Somaliland port dispute.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "escalating",
+      "escalationIndicators": [
+        "Houthi attacks on shipping",
+        "Somali piracy resurgence",
+        "Ethiopia-Somaliland MoU dispute",
+        "Sudan civil war spillover"
+      ],
+      "history": {
+        "lastMajorEvent": "Sudan war outbreak",
+        "lastMajorEventDate": "2023-04-15",
+        "precedentCount": 5,
+        "precedentDescription": "Ethiopia-Eritrea war, Tigray war, Somali civil war, Sudan coups, piracy waves",
+        "cyclicalRisk": "Monsoon affects naval operations (Jun-Sep)"
+      },
+      "whyItMatters": "Bab el-Mandeb chokepoint security; 12% of global trade at risk; Red Sea shipping rerouting"
+    },
+    {
+      "id": "pak_afghan",
+      "name": "Pakistan–Afghanistan Border",
+      "subtext": "Border Conflict / TTP",
+      "lat": 31.8,
+      "lon": 69,
+      "location": "Pakistan–Afghanistan border (KP, Balochistan)",
+      "keywords": [
+        "pakistan",
+        "afghanistan",
+        "ttp",
+        "taliban",
+        "torkham",
+        "chaman",
+        "waziristan",
+        "khyber",
+        "peshawar",
+        "border",
+        "cross-border",
+        "airstrike",
+        "pak-afghan"
+      ],
+      "agencies": [
+        "Pakistan Military",
+        "TTP",
+        "Afghan Taliban"
+      ],
+      "description": "Ongoing conflict along the Pak–Afghan border. Pakistan military operations against TTP; cross-border strikes and border closures. Tensions with Afghan Taliban over border security.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "escalating",
+      "escalationIndicators": [
+        "Border clashes and closures",
+        "Pakistan airstrikes in Afghanistan",
+        "TTP attacks in KP",
+        "Torkham/Chaman crossing tensions"
+      ],
+      "history": {
+        "lastMajorEvent": "Cross-border strikes and border closures",
+        "lastMajorEventDate": "2024",
+        "precedentCount": 3,
+        "precedentDescription": "Recurring border crises, TTP resurgence post-2021, militant sanctuaries in Afghanistan",
+        "cyclicalRisk": "Militant infiltration; seasonal operations"
+      },
+      "whyItMatters": "Nuclear-armed state at contested border; regional stability; displacement and humanitarian impact"
+    },
+    {
+      "id": "dc",
+      "name": "DC",
+      "subtext": "Pentagon Pizza Index",
+      "lat": 38.9,
+      "lon": -77,
+      "location": "Washington D.C., USA",
+      "keywords": [
+        "pentagon",
+        "white house",
+        "congress",
+        "cia",
+        "nsa",
+        "washington",
+        "biden",
+        "trump",
+        "senate",
+        "supreme court",
+        "vance",
+        "elon"
+      ],
+      "agencies": [
+        "Pentagon",
+        "CIA",
+        "NSA",
+        "State Dept"
+      ],
+      "description": "US government and military headquarters. Intelligence community center.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "silicon_valley",
+      "name": "Silicon Valley",
+      "subtext": "Tech/AI Hub",
+      "lat": 37.4,
+      "lon": -122.1,
+      "location": "California, USA",
+      "keywords": [
+        "google",
+        "apple",
+        "meta",
+        "nvidia",
+        "openai",
+        "anthropic",
+        "silicon valley",
+        "san francisco",
+        "palo alto",
+        "tech layoffs",
+        "ai",
+        "artificial intelligence"
+      ],
+      "agencies": [
+        "Big Tech",
+        "AI Labs",
+        "VC"
+      ],
+      "description": "Global tech center. AI development hub. Major economic indicator.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "wall_street",
+      "name": "Wall Street",
+      "subtext": "Financial Hub",
+      "lat": 40.7,
+      "lon": -74,
+      "location": "New York City, USA",
+      "keywords": [
+        "wall street",
+        "fed",
+        "federal reserve",
+        "nyse",
+        "nasdaq",
+        "dow",
+        "sp500",
+        "stock market",
+        "goldman",
+        "jpmorgan",
+        "blackrock"
+      ],
+      "agencies": [
+        "Fed",
+        "SEC",
+        "NYSE"
+      ],
+      "description": "Global financial center. Market movements. Fed policy.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "houston",
+      "name": "Houston",
+      "subtext": "Energy/Space",
+      "lat": 29.76,
+      "lon": -95.37,
+      "location": "Texas, USA",
+      "keywords": [
+        "houston",
+        "nasa",
+        "spacex",
+        "oil",
+        "energy",
+        "texas",
+        "exxon",
+        "chevron",
+        "lng"
+      ],
+      "agencies": [
+        "NASA",
+        "Energy Corps"
+      ],
+      "description": "Energy sector HQ. NASA mission control. Space industry.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "moscow",
+      "name": "Moscow",
+      "subtext": "Kremlin Activity",
+      "lat": 55.75,
+      "lon": 37.6,
+      "location": "Russia",
+      "keywords": [
+        "kremlin",
+        "putin",
+        "russia",
+        "fsb",
+        "moscow",
+        "russian"
+      ],
+      "agencies": [
+        "Kremlin",
+        "FSB",
+        "GRU",
+        "SVR"
+      ],
+      "description": "Russian Federation command center. Military operations hub.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "Ukraine war ongoing",
+        "Mobilization potential",
+        "Nuclear rhetoric",
+        "Wagner aftermath"
+      ],
+      "history": {
+        "lastMajorEvent": "Wagner mutiny",
+        "lastMajorEventDate": "2023-06-24",
+        "precedentCount": 2,
+        "precedentDescription": "Crimea annexation 2014, Ukraine invasion 2022",
+        "cyclicalRisk": "Victory Day (May 9) speeches, Putin addresses"
+      },
+      "whyItMatters": "Nuclear power at war; energy leverage over Europe; global order revisionism"
+    },
+    {
+      "id": "beijing",
+      "name": "Beijing",
+      "subtext": "PLA/MSS Activity",
+      "lat": 39.9,
+      "lon": 116.4,
+      "location": "China",
+      "keywords": [
+        "beijing",
+        "xi",
+        "china",
+        "pla",
+        "ccp",
+        "chinese",
+        "jinping"
+      ],
+      "agencies": [
+        "PLA",
+        "MSS",
+        "CCP Politburo"
+      ],
+      "description": "Chinese Communist Party headquarters. PLA command center.",
+      "status": "Monitoring",
+      "escalationScore": 3,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "Taiwan Strait exercises",
+        "South China Sea militarization",
+        "Tech decoupling",
+        "Xi third term"
+      ],
+      "history": {
+        "lastMajorEvent": "Xi unprecedented third term",
+        "lastMajorEventDate": "2022-10-22",
+        "precedentCount": 3,
+        "precedentDescription": "Tiananmen 1989, Hong Kong crackdown 2020, COVID lockdowns 2022",
+        "cyclicalRisk": "Party Congress (every 5 years), Tiananmen anniversary (June 4)"
+      },
+      "whyItMatters": "Largest economy by PPP; primary US strategic competitor; Taiwan contingency risk"
+    },
+    {
+      "id": "kyiv",
+      "name": "Kyiv",
+      "subtext": "Conflict Zone",
+      "lat": 50.45,
+      "lon": 30.5,
+      "location": "Ukraine",
+      "keywords": [
+        "kyiv",
+        "ukraine",
+        "zelensky",
+        "ukrainian",
+        "kiev"
+      ],
+      "agencies": [
+        "Ukrainian Armed Forces",
+        "SBU"
+      ],
+      "description": "Active conflict zone. NATO support operations.",
+      "status": "Monitoring",
+      "escalationScore": 5,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "Active combat operations",
+        "Western weapons deliveries",
+        "Drone warfare escalation",
+        "Nuclear plant risks"
+      ],
+      "history": {
+        "lastMajorEvent": "Russian full invasion",
+        "lastMajorEventDate": "2022-02-24",
+        "precedentCount": 2,
+        "precedentDescription": "Crimea annexation 2014, Donbas war 2014-2022",
+        "cyclicalRisk": "Spring/summer offensive season, Winter energy attacks"
+      },
+      "whyItMatters": "Largest European war since WWII; NATO Article 5 test; global food/energy security"
+    },
+    {
+      "id": "taipei",
+      "name": "Taipei",
+      "subtext": "Strait Watch",
+      "lat": 25.03,
+      "lon": 121.5,
+      "location": "Taiwan",
+      "keywords": [
+        "taiwan",
+        "taipei",
+        "tsmc",
+        "strait",
+        "taiwanese"
+      ],
+      "agencies": [
+        "ROC Military",
+        "TSMC"
+      ],
+      "description": "Taiwan Strait tensions. Semiconductor supply chain.",
+      "status": "Monitoring",
+      "escalationScore": 3,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "PLA exercises around Taiwan",
+        "US arms sales",
+        "TSMC Arizona fab",
+        "DPP governance"
+      ],
+      "history": {
+        "lastMajorEvent": "Pelosi Taiwan visit",
+        "lastMajorEventDate": "2022-08-02",
+        "precedentCount": 3,
+        "precedentDescription": "1954-55 Strait Crisis, 1995-96 missile crisis, 2022 exercises",
+        "cyclicalRisk": "US-Taiwan political visits, PRC National Day (Oct 1)"
+      },
+      "whyItMatters": "TSMC produces 90% of advanced chips; conflict would devastate global tech supply chains"
+    },
+    {
+      "id": "tehran",
+      "name": "Tehran",
+      "subtext": "IRGC Activity",
+      "lat": 35.7,
+      "lon": 51.4,
+      "location": "Iran",
+      "keywords": [
+        "iran",
+        "tehran",
+        "irgc",
+        "khamenei",
+        "persian",
+        "iranian"
+      ],
+      "agencies": [
+        "IRGC",
+        "Quds Force",
+        "MOIS"
+      ],
+      "description": "Iranian nuclear program. Regional proxy operations.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "escalating",
+      "escalationIndicators": [
+        "Near-weapons-grade enrichment",
+        "Proxy attacks on Israel",
+        "Houthi coordination",
+        "Succession uncertainty"
+      ],
+      "history": {
+        "lastMajorEvent": "JCPOA collapse acceleration",
+        "lastMajorEventDate": "2023-01-01",
+        "precedentCount": 4,
+        "precedentDescription": "Revolution 1979, Iran-Iraq War, JCPOA negotiations, Soleimani assassination",
+        "cyclicalRisk": "Quds Day (annually), Khamenei health status"
+      },
+      "whyItMatters": "Near-nuclear threshold state; controls Strait of Hormuz; Axis of Resistance coordinator"
+    },
+    {
+      "id": "telaviv",
+      "name": "Tel Aviv",
+      "subtext": "Mossad/IDF",
+      "lat": 32.1,
+      "lon": 34.8,
+      "location": "Israel",
+      "keywords": [
+        "israel",
+        "idf",
+        "mossad",
+        "gaza",
+        "netanyahu",
+        "israeli",
+        "hamas",
+        "hezbollah"
+      ],
+      "agencies": [
+        "IDF",
+        "Mossad",
+        "Shin Bet"
+      ],
+      "description": "Military operations. Regional security. Intelligence activities.",
+      "status": "Monitoring",
+      "escalationScore": 5,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "Gaza operations ongoing",
+        "Hezbollah northern front",
+        "Iran shadow war",
+        "Judicial crisis paused"
+      ],
+      "history": {
+        "lastMajorEvent": "October 7 attacks",
+        "lastMajorEventDate": "2023-10-07",
+        "precedentCount": 5,
+        "precedentDescription": "1948 War, 1967 Six-Day War, 1973 Yom Kippur, Lebanon 2006, Gaza wars",
+        "cyclicalRisk": "Jewish holidays, Ramadan tensions, election cycles"
+      },
+      "whyItMatters": "Regional escalation risk to multi-front war; US treaty ally; Iran confrontation flashpoint"
+    },
+    {
+      "id": "pyongyang",
+      "name": "Pyongyang",
+      "subtext": "DPRK Watch",
+      "lat": 39,
+      "lon": 125.75,
+      "location": "North Korea",
+      "keywords": [
+        "north korea",
+        "kim",
+        "pyongyang",
+        "dprk",
+        "korean"
+      ],
+      "agencies": [
+        "KPA",
+        "RGB",
+        "Lazarus Group"
+      ],
+      "description": "Nuclear weapons program. Missile testing. Cyber operations.",
+      "status": "Monitoring",
+      "escalationScore": 3,
+      "escalationTrend": "stable",
+      "escalationIndicators": [
+        "ICBM testing resumed",
+        "Russia arms cooperation",
+        "Satellite launches",
+        "Constitution change on ROK"
+      ],
+      "history": {
+        "lastMajorEvent": "Hwasong-18 ICBM test",
+        "lastMajorEventDate": "2023-12-18",
+        "precedentCount": 4,
+        "precedentDescription": "Korean War 1950-53, nuclear tests 2006-2017, Trump summits, missile tests ongoing",
+        "cyclicalRisk": "Kim Il-sung birthday (April 15), party anniversaries"
+      },
+      "whyItMatters": "Nuclear-armed hermit state; ICBM can reach US mainland; cyber threat actor; Russia military supplier"
+    },
+    {
+      "id": "london",
+      "name": "London",
+      "subtext": "GCHQ/MI6",
+      "lat": 51.5,
+      "lon": -0.12,
+      "location": "United Kingdom",
+      "keywords": [
+        "london",
+        "uk",
+        "britain",
+        "gchq",
+        "mi6",
+        "british"
+      ],
+      "agencies": [
+        "MI6",
+        "GCHQ",
+        "MI5"
+      ],
+      "description": "UK intelligence headquarters. Five Eyes member.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "brussels",
+      "name": "Brussels",
+      "subtext": "NATO HQ",
+      "lat": 50.85,
+      "lon": 4.35,
+      "location": "Belgium (NATO HQ)",
+      "keywords": [
+        "nato",
+        "brussels",
+        "eu",
+        "european union",
+        "europe"
+      ],
+      "agencies": [
+        "NATO",
+        "EU Commission"
+      ],
+      "description": "NATO alliance headquarters. European Union center.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "caracas",
+      "name": "Caracas",
+      "subtext": "Venezuela Crisis",
+      "lat": 10.5,
+      "lon": -66.9,
+      "location": "Venezuela",
+      "keywords": [
+        "venezuela",
+        "maduro",
+        "caracas",
+        "venezuelan"
+      ],
+      "agencies": [
+        "Maduro Govt",
+        "SEBIN"
+      ],
+      "description": "Political crisis. Economic sanctions. Regional instability.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "mexico",
+      "name": "Mexico City",
+      "subtext": "Cartel Violence",
+      "lat": 23.6,
+      "lon": -102.5,
+      "location": "Mexico",
+      "keywords": [
+        "mexico",
+        "cartel",
+        "sinaloa",
+        "jalisco",
+        "narco",
+        "cjng",
+        "fentanyl",
+        "el chapo",
+        "national guard mexico",
+        "zetas",
+        "michoacan",
+        "juarez",
+        "tijuana",
+        "border violence",
+        "mexican army",
+        "sedena",
+        "extradition mexico"
+      ],
+      "agencies": [
+        "Sedena",
+        "National Guard",
+        "DEA",
+        "FGR"
+      ],
+      "description": "Cartel warfare, fentanyl trafficking, military deployments, state fragility in multiple regions.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "escalating",
+      "escalationIndicators": [
+        "Sinaloa cartel fragmentation",
+        "CJNG territorial expansion",
+        "Military deployed to multiple states",
+        "Record fentanyl seizures",
+        "Prison breaks and gang violence"
+      ],
+      "history": {
+        "lastMajorEvent": "Sinaloa cartel leadership crisis",
+        "lastMajorEventDate": "2024-07-25",
+        "precedentCount": 5,
+        "precedentDescription": "Decades of cartel wars (Sinaloa vs CJNG, Zetas era, Calderón drug war 2006, El Chapo captures)",
+        "cyclicalRisk": "Election cycles trigger violence; cartel leadership changes spark turf wars"
+      },
+      "whyItMatters": "Largest US land border; fentanyl crisis killing 100k+ Americans/year; regional destabilization; migration driver"
+    },
+    {
+      "id": "nuuk",
+      "name": "Nuuk",
+      "subtext": "Greenland Intel",
+      "lat": 64.18,
+      "lon": -51.7,
+      "location": "Greenland (Denmark)",
+      "keywords": [
+        "greenland",
+        "nuuk",
+        "arctic",
+        "denmark",
+        "danish"
+      ],
+      "agencies": [
+        "Danish Defence",
+        "US Space Force",
+        "Arctic Council"
+      ],
+      "description": "Arctic strategic territory. US military presence, sovereignty questions.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "riyadh",
+      "name": "Riyadh",
+      "subtext": "Saudi GIP/MBS",
+      "lat": 24.7,
+      "lon": 46.7,
+      "location": "Saudi Arabia",
+      "keywords": [
+        "saudi",
+        "riyadh",
+        "mbs",
+        "aramco",
+        "opec",
+        "saudi arabia"
+      ],
+      "agencies": [
+        "GIP",
+        "Saudi Royal Court",
+        "Aramco"
+      ],
+      "description": "Saudi Arabia power center. OPEC+ decisions. Regional influence.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "cairo",
+      "name": "Cairo",
+      "subtext": "Egypt/GIS",
+      "lat": 30,
+      "lon": 31.2,
+      "location": "Egypt",
+      "keywords": [
+        "egypt",
+        "cairo",
+        "sisi",
+        "egyptian",
+        "suez"
+      ],
+      "agencies": [
+        "GIS",
+        "Egyptian Armed Forces"
+      ],
+      "description": "Egyptian command. Gaza border control. Suez Canal security.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "baghdad",
+      "name": "Baghdad",
+      "subtext": "Iraq/PMF",
+      "lat": 33.3,
+      "lon": 44.4,
+      "location": "Iraq",
+      "keywords": [
+        "iraq",
+        "baghdad",
+        "iraqi",
+        "pmf",
+        "militia"
+      ],
+      "agencies": [
+        "Iraqi Security Forces",
+        "PMF",
+        "US Embassy"
+      ],
+      "description": "Iraqi government. Iran-backed militias. US military presence.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "damascus",
+      "name": "Damascus",
+      "subtext": "Syria Crisis",
+      "lat": 33.5,
+      "lon": 36.3,
+      "location": "Syria",
+      "keywords": [
+        "syria",
+        "damascus",
+        "assad",
+        "syrian",
+        "hts"
+      ],
+      "agencies": [
+        "Syrian Govt",
+        "HTS",
+        "Russian Forces",
+        "Turkish Forces"
+      ],
+      "description": "Syrian civil war aftermath. Multiple foreign interventions.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "doha",
+      "name": "Doha",
+      "subtext": "Qatar/Al Udeid",
+      "lat": 25.3,
+      "lon": 51.5,
+      "location": "Qatar",
+      "keywords": [
+        "qatar",
+        "doha",
+        "qatari",
+        "al jazeera"
+      ],
+      "agencies": [
+        "Qatari State Security",
+        "CENTCOM Forward HQ"
+      ],
+      "description": "Qatar diplomatic hub. US CENTCOM base. Al Jazeera HQ.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "ankara",
+      "name": "Ankara",
+      "subtext": "Turkey/MIT",
+      "lat": 39.9,
+      "lon": 32.9,
+      "location": "Turkey",
+      "keywords": [
+        "turkey",
+        "ankara",
+        "erdogan",
+        "turkish",
+        "mit"
+      ],
+      "agencies": [
+        "MIT",
+        "Turkish Armed Forces",
+        "AKP"
+      ],
+      "description": "NATO member. Kurdish conflict. Syria/Libya operations.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "beirut",
+      "name": "Beirut",
+      "subtext": "Lebanon/Hezbollah",
+      "lat": 33.9,
+      "lon": 35.5,
+      "location": "Lebanon",
+      "keywords": [
+        "lebanon",
+        "beirut",
+        "hezbollah",
+        "lebanese",
+        "nasrallah"
+      ],
+      "agencies": [
+        "LAF",
+        "Hezbollah",
+        "UNIFIL"
+      ],
+      "description": "Lebanon crisis. Hezbollah stronghold. Israel border tensions.",
+      "status": "Monitoring"
+    },
+    {
+      "id": "sanaa",
+      "name": "Sana'a",
+      "subtext": "Yemen/Houthis",
+      "lat": 15.4,
+      "lon": 44.2,
+      "keywords": [
+        "yemen",
+        "houthi",
+        "sanaa",
+        "yemeni",
+        "red sea"
+      ],
+      "agencies": [
+        "Houthi Forces",
+        "Saudi Coalition",
+        "US Navy"
+      ],
+      "description": "Yemen conflict. Houthi Red Sea attacks. Shipping disruption.",
+      "status": "Monitoring",
+      "escalationScore": 4,
+      "escalationTrend": "escalating",
+      "escalationIndicators": [
+        "Red Sea shipping attacks",
+        "US/UK strikes on Yemen",
+        "Iran weapon supplies",
+        "Commercial ship seizures"
+      ],
+      "history": {
+        "lastMajorEvent": "Red Sea campaign begins",
+        "lastMajorEventDate": "2023-11-19",
+        "precedentCount": 3,
+        "precedentDescription": "Civil war since 2014, Saudi intervention 2015, US strikes 2024",
+        "cyclicalRisk": "Ramadan, Gaza war linkage"
+      },
+      "whyItMatters": "Disrupting 12% of global trade via Suez; insurance costs spiking; Iran proxy demonstration"
+    },
+    {
+      "id": "abudhabi",
+      "name": "Abu Dhabi",
+      "subtext": "UAE/ECSR",
+      "lat": 24.5,
+      "lon": 54.4,
+      "keywords": [
+        "uae",
+        "abu dhabi",
+        "emirates",
+        "emirati",
+        "dubai"
+      ],
+      "agencies": [
+        "ECSR",
+        "UAE Armed Forces"
+      ],
+      "description": "UAE strategic hub. Regional military operations.",
+      "status": "Monitoring"
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "iran",
+      "name": "Iran War Theater",
+      "coords": [
+        [
+          44,
+          39.7
+        ],
+        [
+          46,
+          39.5
+        ],
+        [
+          48.5,
+          38.5
+        ],
+        [
+          50.5,
+          37.5
+        ],
+        [
+          53.5,
+          37.5
+        ],
+        [
+          55.5,
+          38
+        ],
+        [
+          57,
+          37.5
+        ],
+        [
+          58.5,
+          37.5
+        ],
+        [
+          61,
+          36.5
+        ],
+        [
+          63.5,
+          35.5
+        ],
+        [
+          63.5,
+          31.5
+        ],
+        [
+          62.5,
+          29.5
+        ],
+        [
+          61,
+          28
+        ],
+        [
+          59,
+          26.5
+        ],
+        [
+          57.5,
+          25.5
+        ],
+        [
+          56.5,
+          25.5
+        ],
+        [
+          55,
+          26.5
+        ],
+        [
+          54,
+          27
+        ],
+        [
+          52.5,
+          27.5
+        ],
+        [
+          50.5,
+          28.5
+        ],
+        [
+          49,
+          29.5
+        ],
+        [
+          47.5,
+          30
+        ],
+        [
+          46,
+          31.5
+        ],
+        [
+          45.5,
+          33.5
+        ],
+        [
+          45.8,
+          35.5
+        ],
+        [
+          46.5,
+          37
+        ],
+        [
+          44,
+          38.5
+        ],
+        [
+          44,
+          39.7
+        ]
+      ],
+      "center": [
+        53,
+        32
+      ],
+      "intensity": "high",
+      "parties": [
+        "United States",
+        "Israel",
+        "Iran",
+        "IRGC"
+      ],
+      "casualties": "200+ killed (first 72hrs)",
+      "displaced": "Millions fleeing major cities",
+      "keywords": [
+        "iran",
+        "tehran",
+        "khamenei",
+        "epic fury",
+        "roaring lion",
+        "irgc",
+        "centcom",
+        "isfahan",
+        "bushehr"
+      ],
+      "startDate": "Feb 28, 2026",
+      "location": "Iran (nationwide)",
+      "description": "Joint US-Israeli military operation (US: Operation Epic Fury / Israel: Operation Roaring Lion). 1000+ targets struck including military, nuclear, and leadership sites. Supreme Leader Khamenei killed in Tehran strikes. Iran retaliating with missiles and drones across the region.",
+      "keyDevelopments": [
+        "Khamenei killed in Tehran strikes",
+        "1000+ Iranian targets struck",
+        "3 US service members KIA",
+        "Iranian missile/drone retaliation on Gulf states"
+      ]
+    },
+    {
+      "id": "strait_hormuz",
+      "name": "Strait of Hormuz Crisis",
+      "coords": [
+        [
+          54.5,
+          25.5
+        ],
+        [
+          55.5,
+          25
+        ],
+        [
+          57,
+          24.8
+        ],
+        [
+          58.5,
+          25
+        ],
+        [
+          58.5,
+          26.8
+        ],
+        [
+          57.5,
+          27.5
+        ],
+        [
+          56,
+          27.5
+        ],
+        [
+          54.5,
+          27
+        ],
+        [
+          54.5,
+          25.5
+        ]
+      ],
+      "center": [
+        56.5,
+        26.2
+      ],
+      "intensity": "high",
+      "parties": [
+        "Iran (IRGC Navy)",
+        "US Navy (5th Fleet)",
+        "Coalition forces"
+      ],
+      "casualties": "Maritime casualties reported",
+      "displaced": "Global shipping halted",
+      "keywords": [
+        "hormuz",
+        "strait",
+        "persian gulf",
+        "shipping",
+        "tanker",
+        "oil",
+        "blockade",
+        "navy"
+      ],
+      "startDate": "Feb 28, 2026",
+      "location": "Strait of Hormuz & Persian Gulf Approaches",
+      "description": "Iran attempting to close Strait of Hormuz. IRGC naval/air operations active. Three tankers damaged. US sank 9 Iranian warships. GPS spoofing/jamming reported. 20-30% of global oil/gas transits through this chokepoint. Brent crude spiking to $80+.",
+      "keyDevelopments": [
+        "Iran attempts Hormuz closure",
+        "3 tankers damaged",
+        "US sinks 9 Iranian warships",
+        "Global shipping paused",
+        "Oil prices spike"
+      ]
+    },
+    {
+      "id": "ukraine",
+      "name": "Ukraine War",
+      "coords": [
+        [
+          22.137,
+          48.09
+        ],
+        [
+          22.558,
+          49.085
+        ],
+        [
+          22.66,
+          49.79
+        ],
+        [
+          23.2,
+          50.38
+        ],
+        [
+          23.82,
+          51.22
+        ],
+        [
+          24.09,
+          51.89
+        ],
+        [
+          25.6,
+          51.93
+        ],
+        [
+          27.85,
+          52.18
+        ],
+        [
+          30.17,
+          52.1
+        ],
+        [
+          32.76,
+          52.32
+        ],
+        [
+          34.4,
+          51.76
+        ],
+        [
+          36.28,
+          50.3
+        ],
+        [
+          38.25,
+          49.92
+        ],
+        [
+          40.18,
+          49.6
+        ],
+        [
+          40.08,
+          48.88
+        ],
+        [
+          39.68,
+          47.77
+        ],
+        [
+          38.21,
+          47.1
+        ],
+        [
+          36.65,
+          46.58
+        ],
+        [
+          35.19,
+          46.1
+        ],
+        [
+          36.47,
+          45.22
+        ],
+        [
+          36,
+          44.4
+        ],
+        [
+          33.55,
+          44.39
+        ],
+        [
+          32.48,
+          44.52
+        ],
+        [
+          31.78,
+          45.2
+        ],
+        [
+          31.44,
+          46.03
+        ],
+        [
+          30.76,
+          46.38
+        ],
+        [
+          29.6,
+          45.38
+        ],
+        [
+          28.21,
+          45.45
+        ],
+        [
+          28.68,
+          46.45
+        ],
+        [
+          28.24,
+          47.11
+        ],
+        [
+          26.62,
+          48.26
+        ],
+        [
+          24.58,
+          47.96
+        ],
+        [
+          22.87,
+          47.95
+        ],
+        [
+          22.137,
+          48.09
+        ]
+      ],
+      "center": [
+        31,
+        48.5
+      ],
+      "intensity": "high",
+      "parties": [
+        "Russia",
+        "Ukraine",
+        "NATO (support)"
+      ],
+      "casualties": "500,000+ (est.)",
+      "displaced": "6.5M+ refugees",
+      "keywords": [
+        "ukraine",
+        "russia",
+        "zelensky",
+        "putin",
+        "donbas",
+        "crimea"
+      ],
+      "startDate": "Feb 24, 2022",
+      "location": "Eastern Ukraine (Donetsk, Luhansk)",
+      "description": "Full-scale Russian invasion of Ukraine. Active frontlines in Donetsk, Luhansk, Zaporizhzhia, and Kherson oblasts. Heavy artillery, drone warfare, and trench combat.",
+      "keyDevelopments": [
+        "Battle of Bakhmut",
+        "Kursk incursion",
+        "Black Sea drone strikes",
+        "Infrastructure attacks"
+      ]
+    },
+    {
+      "id": "gaza",
+      "name": "Gaza Conflict",
+      "coords": [
+        [
+          34,
+          32
+        ],
+        [
+          35,
+          32
+        ],
+        [
+          35,
+          31
+        ],
+        [
+          34,
+          31
+        ]
+      ],
+      "center": [
+        34.5,
+        31.5
+      ],
+      "intensity": "high",
+      "parties": [
+        "Israel",
+        "Hamas",
+        "Hezbollah",
+        "PIJ"
+      ],
+      "casualties": "40,000+ (Gaza)",
+      "displaced": "2M+ displaced",
+      "keywords": [
+        "gaza",
+        "israel",
+        "hamas",
+        "palestinian"
+      ],
+      "startDate": "Oct 7, 2023",
+      "location": "Gaza Strip, Palestinian Territories",
+      "description": "Israeli military operations in Gaza following October 7 attacks. Ground invasion, aerial bombardment. Humanitarian crisis. Regional escalation with Hezbollah.",
+      "keyDevelopments": [
+        "Rafah ground operation",
+        "Humanitarian crisis",
+        "Hostage negotiations",
+        "Iran-backed attacks"
+      ]
+    },
+    {
+      "id": "south_lebanon",
+      "name": "Israel-Lebanon Border",
+      "coords": [
+        [
+          35.1,
+          33
+        ],
+        [
+          35.1,
+          33.4
+        ],
+        [
+          35.8,
+          33.4
+        ],
+        [
+          35.8,
+          33
+        ]
+      ],
+      "center": [
+        35.4,
+        33.2
+      ],
+      "intensity": "high",
+      "parties": [
+        "Israel (IDF)",
+        "Hezbollah"
+      ],
+      "casualties": "500+ killed",
+      "displaced": "150k+ displaced",
+      "keywords": [
+        "hezbollah",
+        "lebanon",
+        "israel",
+        "border",
+        "rocket",
+        "airstrike"
+      ],
+      "startDate": "Oct 8, 2023",
+      "location": "Southern Lebanon / Northern Israel",
+      "description": "Cross-border artillery and rocket fire. Targeted assassinations. High risk of full-scale escalation.",
+      "keyDevelopments": [
+        "Daily rocket fire",
+        "IDF airstrikes",
+        "Buffer zone evacuation",
+        "Litani River tensions"
+      ]
+    },
+    {
+      "id": "yemen_redsea",
+      "name": "Red Sea Crisis",
+      "coords": [
+        [
+          42.6,
+          16.5
+        ],
+        [
+          42.8,
+          15.8
+        ],
+        [
+          42.7,
+          15.2
+        ],
+        [
+          42.9,
+          14.8
+        ],
+        [
+          43.1,
+          14
+        ],
+        [
+          43.3,
+          12.6
+        ],
+        [
+          43.5,
+          12.4
+        ],
+        [
+          44,
+          12.6
+        ],
+        [
+          44.8,
+          12.5
+        ],
+        [
+          45.2,
+          12.8
+        ],
+        [
+          45.5,
+          13
+        ],
+        [
+          46,
+          13.4
+        ],
+        [
+          46.8,
+          13.8
+        ],
+        [
+          47.5,
+          13.9
+        ],
+        [
+          48,
+          14
+        ],
+        [
+          48.5,
+          14.5
+        ],
+        [
+          49.5,
+          14.7
+        ],
+        [
+          50.5,
+          14.9
+        ],
+        [
+          51.5,
+          14.7
+        ],
+        [
+          52,
+          15
+        ],
+        [
+          52.2,
+          15.6
+        ],
+        [
+          51.5,
+          16
+        ],
+        [
+          50,
+          16.4
+        ],
+        [
+          48.5,
+          16.8
+        ],
+        [
+          47,
+          17
+        ],
+        [
+          46,
+          17.2
+        ],
+        [
+          45,
+          17
+        ],
+        [
+          44.5,
+          17
+        ],
+        [
+          43.5,
+          17
+        ],
+        [
+          42.6,
+          16.5
+        ]
+      ],
+      "center": [
+        46,
+        14.5
+      ],
+      "intensity": "high",
+      "parties": [
+        "Houthis",
+        "US/UK Coalition",
+        "Yemen Govt"
+      ],
+      "casualties": "Unknown (Maritime)",
+      "displaced": "4.5M+ (Yemen Civil War)",
+      "keywords": [
+        "houthi",
+        "red sea",
+        "yemen",
+        "missile",
+        "drone",
+        "ship"
+      ],
+      "startDate": "Nov 19, 2023",
+      "location": "Red Sea & Gulf of Aden, Yemen",
+      "description": "Houthi maritime campaign against commercial shipping. US/UK airstrikes on Houthi targets. Ongoing blockade attempts.",
+      "keyDevelopments": [
+        "Ship hijackings",
+        "US airstrikes",
+        "Cable cuts",
+        "Sinking of Rubymar"
+      ]
+    },
+    {
+      "id": "sudan",
+      "name": "Sudan Civil War",
+      "coords": [
+        [
+          21.8,
+          22
+        ],
+        [
+          24,
+          21.9
+        ],
+        [
+          31.4,
+          22
+        ],
+        [
+          33.2,
+          22
+        ],
+        [
+          36.9,
+          22
+        ],
+        [
+          36.9,
+          19.5
+        ],
+        [
+          37.5,
+          18.2
+        ],
+        [
+          38.6,
+          18
+        ],
+        [
+          38.5,
+          17.4
+        ],
+        [
+          37,
+          16.6
+        ],
+        [
+          36.5,
+          14.5
+        ],
+        [
+          35.3,
+          12.2
+        ],
+        [
+          34.1,
+          10.6
+        ],
+        [
+          33.2,
+          9.6
+        ],
+        [
+          32,
+          9.8
+        ],
+        [
+          30.2,
+          9.4
+        ],
+        [
+          29,
+          9.8
+        ],
+        [
+          27.5,
+          9.5
+        ],
+        [
+          25,
+          10.2
+        ],
+        [
+          24,
+          12.5
+        ],
+        [
+          23.5,
+          15.6
+        ],
+        [
+          22,
+          16
+        ],
+        [
+          21.8,
+          20
+        ],
+        [
+          21.8,
+          22
+        ]
+      ],
+      "center": [
+        30,
+        15.5
+      ],
+      "intensity": "high",
+      "parties": [
+        "Sudanese Armed Forces (SAF)",
+        "Rapid Support Forces (RSF)",
+        "Allied militias"
+      ],
+      "casualties": "150,000+ killed (est.)",
+      "displaced": "14M+ internally displaced, 3M+ refugees",
+      "keywords": [
+        "sudan",
+        "khartoum",
+        "darfur",
+        "rsf",
+        "saf",
+        "el fasher",
+        "port sudan",
+        "wad madani",
+        "al jazirah",
+        "famine",
+        "hemedti"
+      ],
+      "startDate": "Apr 15, 2023",
+      "location": "Sudan (nationwide)",
+      "description": "Power struggle between SAF and RSF paramilitary has engulfed the entire country. RSF controls most of Darfur and Khartoum; SAF holds Port Sudan and eastern regions. World's largest displacement crisis. Famine conditions in multiple states.",
+      "keyDevelopments": [
+        "Khartoum destruction",
+        "Darfur ethnic massacres",
+        "El Fasher siege",
+        "Wad Madani fall to RSF",
+        "Famine declared in North Darfur",
+        "SAF counter-offensives",
+        "Regional proxy involvement (UAE, Egypt)"
+      ]
+    },
+    {
+      "id": "myanmar",
+      "name": "Myanmar Civil War",
+      "coords": [
+        [
+          92.2,
+          21
+        ],
+        [
+          92.1,
+          23.7
+        ],
+        [
+          93,
+          24.2
+        ],
+        [
+          94,
+          25
+        ],
+        [
+          94.5,
+          26.5
+        ],
+        [
+          96,
+          28.3
+        ],
+        [
+          97.5,
+          28.2
+        ],
+        [
+          98.5,
+          27.5
+        ],
+        [
+          98.8,
+          25.5
+        ],
+        [
+          100.2,
+          23.5
+        ],
+        [
+          101,
+          21.5
+        ],
+        [
+          100.5,
+          20
+        ],
+        [
+          99,
+          18
+        ],
+        [
+          98.5,
+          16
+        ],
+        [
+          98.5,
+          13
+        ],
+        [
+          97.5,
+          10.5
+        ],
+        [
+          97,
+          10
+        ],
+        [
+          97.8,
+          12.5
+        ],
+        [
+          97.5,
+          14.5
+        ],
+        [
+          96.5,
+          16
+        ],
+        [
+          95.5,
+          17.5
+        ],
+        [
+          94.5,
+          18.5
+        ],
+        [
+          93.5,
+          19.5
+        ],
+        [
+          92.5,
+          20
+        ],
+        [
+          92.2,
+          21
+        ]
+      ],
+      "center": [
+        96.5,
+        20
+      ],
+      "intensity": "high",
+      "parties": [
+        "Military junta (Tatmadaw)",
+        "NUG / PDF",
+        "Arakan Army (AA)",
+        "MNDAA / TNLA / KIA",
+        "Ethnic armed organizations"
+      ],
+      "casualties": "50,000+ (est.)",
+      "displaced": "3M+ internally displaced",
+      "keywords": [
+        "myanmar",
+        "burma",
+        "rohingya",
+        "shan",
+        "rakhine",
+        "arakan army",
+        "kachin",
+        "pdf",
+        "nug",
+        "coup",
+        "resistance",
+        "junta",
+        "tatmadaw"
+      ],
+      "startDate": "Feb 1, 2021",
+      "location": "Myanmar (nationwide)",
+      "description": "Civil war following 2021 military coup. Resistance forces and ethnic armed organizations have captured significant territory. Junta losing control of border regions. Multiple coordinated offensives ongoing.",
+      "keyDevelopments": [
+        "Operation 1027 (Shan State)",
+        "Lashio capture by MNDAA",
+        "AA controls most of Rakhine",
+        "Myawaddy capture",
+        "Junta airstrikes on civilians",
+        "Resistance advances in Sagaing"
+      ]
+    },
+    {
+      "id": "korean_dmz",
+      "name": "Korean Demilitarized Zone",
+      "intensity": "low",
+      "parties": [
+        "Republic of Korea",
+        "Democratic People's Republic of Korea",
+        "United Nations Command"
+      ],
+      "startDate": "Jul 27, 1953",
+      "location": "Korean Peninsula (MDL)",
+      "description": "250km-long, 4km-wide buffer zone along the Military Demarcation Line established by the 1953 Korean Armistice Agreement. Despite its name, one of the most heavily militarized borders in the world.",
+      "center": [
+        127.27,
+        38.14
+      ],
+      "coords": [
+        [
+          126.0955,
+          37.7876
+        ],
+        [
+          126.2448,
+          37.8175
+        ],
+        [
+          126.3927,
+          37.857
+        ],
+        [
+          126.5117,
+          37.9068
+        ],
+        [
+          126.6219,
+          37.9468
+        ],
+        [
+          126.6735,
+          37.9672
+        ],
+        [
+          126.775,
+          37.9875
+        ],
+        [
+          126.8936,
+          38.0173
+        ],
+        [
+          127.0409,
+          38.0665
+        ],
+        [
+          127.1676,
+          38.1351
+        ],
+        [
+          127.3004,
+          38.2363
+        ],
+        [
+          127.4476,
+          38.2679
+        ],
+        [
+          127.5784,
+          38.2679
+        ],
+        [
+          127.7175,
+          38.2879
+        ],
+        [
+          127.8476,
+          38.2979
+        ],
+        [
+          127.994,
+          38.3174
+        ],
+        [
+          128.1079,
+          38.3653
+        ],
+        [
+          128.1834,
+          38.4324
+        ],
+        [
+          128.262,
+          38.5312
+        ],
+        [
+          128.342,
+          38.6312
+        ],
+        [
+          128.3744,
+          38.634
+        ],
+        [
+          128.378,
+          38.6088
+        ],
+        [
+          128.2979,
+          38.5088
+        ],
+        [
+          128.2166,
+          38.4076
+        ],
+        [
+          128.1321,
+          38.3347
+        ],
+        [
+          128.006,
+          38.2826
+        ],
+        [
+          127.8524,
+          38.2621
+        ],
+        [
+          127.7225,
+          38.2521
+        ],
+        [
+          127.5816,
+          38.2321
+        ],
+        [
+          127.4524,
+          38.2321
+        ],
+        [
+          127.3196,
+          38.2037
+        ],
+        [
+          127.1924,
+          38.1049
+        ],
+        [
+          127.0591,
+          38.0335
+        ],
+        [
+          126.9064,
+          37.9827
+        ],
+        [
+          126.785,
+          37.9525
+        ],
+        [
+          126.6865,
+          37.9328
+        ],
+        [
+          126.6381,
+          37.9132
+        ],
+        [
+          126.5283,
+          37.8732
+        ],
+        [
+          126.4073,
+          37.823
+        ],
+        [
+          126.2552,
+          37.7825
+        ],
+        [
+          126.1045,
+          37.7524
+        ],
+        [
+          126.0777,
+          37.7665
+        ],
+        [
+          126.0955,
+          37.7876
+        ]
+      ]
+    },
+    {
+      "id": "pak_afghan",
+      "name": "Pakistan–Afghanistan Border Conflict",
+      "coords": [
+        [
+          72.5,
+          35.7
+        ],
+        [
+          69.4,
+          31.69
+        ],
+        [
+          65.95,
+          29.33
+        ],
+        [
+          64.9,
+          30.29
+        ],
+        [
+          71.02,
+          36.55
+        ],
+        [
+          72.5,
+          35.7
+        ]
+      ],
+      "center": [
+        69,
+        31.8
+      ],
+      "intensity": "medium",
+      "parties": [
+        "Pakistan (Military)",
+        "TTP",
+        "Afghan Taliban"
+      ],
+      "casualties": "Ongoing military and civilian casualties",
+      "displaced": "Displacement along border areas",
+      "keywords": [
+        "pakistan",
+        "afghanistan",
+        "ttp",
+        "taliban",
+        "torkham",
+        "chaman",
+        "waziristan",
+        "kpk",
+        "border",
+        "cross-border",
+        "airstrike"
+      ],
+      "startDate": "Feb 21, 2026",
+      "location": "Pakistan–Afghanistan border (KPK, Balochistan, Federally Administered Tribal Areas)",
+      "description": "Escalating tensions along the Pakistan–Afghanistan border. Pakistan has conducted cross-border strikes targeting TTP sanctuaries in Afghan territory, prompting border closures and diplomatic friction with the Taliban government. Long-running dispute over militant safe havens and border security.",
+      "keyDevelopments": [
+        "Pakistan cross-border strikes in Afghanistan",
+        "TTP attacks in KPK",
+        "Torkham/Chaman crossing tensions",
+        "Militant infiltration",
+        "Border closures"
+      ]
+    }
+  ],
+  "nuclear": [
+    {
+      "id": "los_alamos",
+      "name": "Los Alamos",
+      "lat": 35.88,
+      "lon": -106.31,
+      "type": "weapons",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "sandia",
+      "name": "Sandia Labs",
+      "lat": 35.04,
+      "lon": -106.54,
+      "type": "weapons",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "livermore",
+      "name": "LLNL",
+      "lat": 37.69,
+      "lon": -121.7,
+      "type": "weapons",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "oak_ridge",
+      "name": "Oak Ridge",
+      "lat": 35.93,
+      "lon": -84.31,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "hanford",
+      "name": "Hanford",
+      "lat": 46.55,
+      "lon": -119.49,
+      "type": "weapons",
+      "status": "inactive",
+      "operator": "US"
+    },
+    {
+      "id": "pantex",
+      "name": "Pantex",
+      "lat": 35.32,
+      "lon": -101.55,
+      "type": "weapons",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "palo_verde",
+      "name": "Palo Verde",
+      "lat": 33.39,
+      "lon": -112.86,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "south_texas",
+      "name": "South Texas",
+      "lat": 28.795,
+      "lon": -96.048,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "comanche_peak",
+      "name": "Comanche Peak",
+      "lat": 32.3,
+      "lon": -97.79,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "vogtle",
+      "name": "Vogtle",
+      "lat": 33.14,
+      "lon": -81.76,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "mcguire",
+      "name": "McGuire",
+      "lat": 35.43,
+      "lon": -80.95,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "oconee",
+      "name": "Oconee",
+      "lat": 34.79,
+      "lon": -82.9,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "catawba",
+      "name": "Catawba",
+      "lat": 35.05,
+      "lon": -81.07,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "brunswick",
+      "name": "Brunswick",
+      "lat": 33.96,
+      "lon": -78.01,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "calvert_cliffs",
+      "name": "Calvert Cliffs",
+      "lat": 38.43,
+      "lon": -76.44,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "salem",
+      "name": "Salem",
+      "lat": 39.46,
+      "lon": -75.54,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "limerick",
+      "name": "Limerick",
+      "lat": 40.22,
+      "lon": -75.59,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "peach_bottom",
+      "name": "Peach Bottom",
+      "lat": 39.76,
+      "lon": -76.27,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "indian_point",
+      "name": "Indian Point",
+      "lat": 41.27,
+      "lon": -73.95,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "US"
+    },
+    {
+      "id": "millstone",
+      "name": "Millstone",
+      "lat": 41.31,
+      "lon": -72.17,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "seabrook",
+      "name": "Seabrook",
+      "lat": 42.9,
+      "lon": -70.85,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "byron",
+      "name": "Byron",
+      "lat": 42.08,
+      "lon": -89.28,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "braidwood",
+      "name": "Braidwood",
+      "lat": 41.24,
+      "lon": -88.21,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "lasalle",
+      "name": "LaSalle",
+      "lat": 41.24,
+      "lon": -88.67,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "dresden",
+      "name": "Dresden",
+      "lat": 41.39,
+      "lon": -88.27,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "quad_cities",
+      "name": "Quad Cities",
+      "lat": 41.73,
+      "lon": -90.34,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "palisades",
+      "name": "Palisades",
+      "lat": 42.32,
+      "lon": -86.32,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "dc_cook",
+      "name": "D.C. Cook",
+      "lat": 41.98,
+      "lon": -86.56,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "davis_besse",
+      "name": "Davis-Besse",
+      "lat": 41.6,
+      "lon": -83.09,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "beaver_valley",
+      "name": "Beaver Valley",
+      "lat": 40.62,
+      "lon": -80.43,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "diablo_canyon",
+      "name": "Diablo Canyon",
+      "lat": 35.21,
+      "lon": -120.85,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "columbia_gen",
+      "name": "Columbia Generating",
+      "lat": 46.47,
+      "lon": -119.33,
+      "type": "plant",
+      "status": "active",
+      "operator": "US"
+    },
+    {
+      "id": "gravelines",
+      "name": "Gravelines",
+      "lat": 51.01,
+      "lon": 2.14,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "paluel",
+      "name": "Paluel",
+      "lat": 49.86,
+      "lon": 0.63,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "cattenom",
+      "name": "Cattenom",
+      "lat": 49.42,
+      "lon": 6.22,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "bugey",
+      "name": "Bugey",
+      "lat": 45.8,
+      "lon": 5.27,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "tricastin",
+      "name": "Tricastin",
+      "lat": 44.33,
+      "lon": 4.73,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "cruas",
+      "name": "Cruas",
+      "lat": 44.63,
+      "lon": 4.76,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "blayais",
+      "name": "Blayais",
+      "lat": 45.26,
+      "lon": -0.69,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "golfech",
+      "name": "Golfech",
+      "lat": 44.11,
+      "lon": 0.85,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "flamanville",
+      "name": "Flamanville",
+      "lat": 49.54,
+      "lon": -1.88,
+      "type": "plant",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "la_hague",
+      "name": "La Hague",
+      "lat": 49.68,
+      "lon": -1.88,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "FR"
+    },
+    {
+      "id": "hinkley_point",
+      "name": "Hinkley Point",
+      "lat": 51.21,
+      "lon": -3.13,
+      "type": "plant",
+      "status": "active",
+      "operator": "GB"
+    },
+    {
+      "id": "sizewell",
+      "name": "Sizewell",
+      "lat": 52.21,
+      "lon": 1.62,
+      "type": "plant",
+      "status": "active",
+      "operator": "GB"
+    },
+    {
+      "id": "heysham",
+      "name": "Heysham",
+      "lat": 54.03,
+      "lon": -2.92,
+      "type": "plant",
+      "status": "active",
+      "operator": "GB"
+    },
+    {
+      "id": "torness",
+      "name": "Torness",
+      "lat": 55.97,
+      "lon": -2.41,
+      "type": "plant",
+      "status": "active",
+      "operator": "GB"
+    },
+    {
+      "id": "sellafield",
+      "name": "Sellafield",
+      "lat": 54.42,
+      "lon": -3.5,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "GB"
+    },
+    {
+      "id": "neckarwestheim",
+      "name": "Neckarwestheim",
+      "lat": 49.04,
+      "lon": 9.18,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "DE"
+    },
+    {
+      "id": "isar",
+      "name": "Isar",
+      "lat": 48.61,
+      "lon": 12.29,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "DE"
+    },
+    {
+      "id": "emsland",
+      "name": "Emsland",
+      "lat": 52.47,
+      "lon": 7.32,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "DE"
+    },
+    {
+      "id": "kursk",
+      "name": "Kursk NPP",
+      "lat": 51.67,
+      "lon": 35.61,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "novovoronezh",
+      "name": "Novovoronezh",
+      "lat": 51.27,
+      "lon": 39.22,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "leningrad",
+      "name": "Leningrad NPP",
+      "lat": 59.83,
+      "lon": 29.03,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "kalinin",
+      "name": "Kalinin NPP",
+      "lat": 57.79,
+      "lon": 35.06,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "balakovo",
+      "name": "Balakovo",
+      "lat": 52.09,
+      "lon": 47.95,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "rostov",
+      "name": "Rostov NPP",
+      "lat": 47.25,
+      "lon": 42.1,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "kola",
+      "name": "Kola NPP",
+      "lat": 67.46,
+      "lon": 32.47,
+      "type": "plant",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "mayak",
+      "name": "Mayak",
+      "lat": 55.71,
+      "lon": 60.8,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "RU"
+    },
+    {
+      "id": "zaporizhzhia",
+      "name": "Zaporizhzhia NPP",
+      "lat": 47.51,
+      "lon": 34.58,
+      "type": "plant",
+      "status": "contested",
+      "operator": "UA"
+    },
+    {
+      "id": "rivne",
+      "name": "Rivne NPP",
+      "lat": 51.33,
+      "lon": 25.88,
+      "type": "plant",
+      "status": "active",
+      "operator": "UA"
+    },
+    {
+      "id": "south_ukraine",
+      "name": "South Ukraine NPP",
+      "lat": 47.81,
+      "lon": 31.22,
+      "type": "plant",
+      "status": "active",
+      "operator": "UA"
+    },
+    {
+      "id": "khmelnytskyi",
+      "name": "Khmelnytskyi NPP",
+      "lat": 50.3,
+      "lon": 26.65,
+      "type": "plant",
+      "status": "active",
+      "operator": "UA"
+    },
+    {
+      "id": "chernobyl",
+      "name": "Chernobyl",
+      "lat": 51.39,
+      "lon": 30.1,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "UA"
+    },
+    {
+      "id": "daya_bay",
+      "name": "Daya Bay",
+      "lat": 22.6,
+      "lon": 114.54,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "taishan",
+      "name": "Taishan",
+      "lat": 21.91,
+      "lon": 112.98,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "yangjiang",
+      "name": "Yangjiang",
+      "lat": 21.71,
+      "lon": 112.26,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "hongyanhe",
+      "name": "Hongyanhe",
+      "lat": 39.79,
+      "lon": 121.48,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "tianwan",
+      "name": "Tianwan",
+      "lat": 34.69,
+      "lon": 119.46,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "fuqing",
+      "name": "Fuqing",
+      "lat": 25.44,
+      "lon": 119.44,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "fangjiashan",
+      "name": "Fangjiashan",
+      "lat": 30.44,
+      "lon": 120.96,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "sanmen",
+      "name": "Sanmen",
+      "lat": 29.1,
+      "lon": 121.41,
+      "type": "plant",
+      "status": "active",
+      "operator": "CN"
+    },
+    {
+      "id": "fukushima_daini",
+      "name": "Fukushima Daini",
+      "lat": 37.32,
+      "lon": 141.03,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "JP"
+    },
+    {
+      "id": "kashiwazaki",
+      "name": "Kashiwazaki-Kariwa",
+      "lat": 37.43,
+      "lon": 138.6,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "JP"
+    },
+    {
+      "id": "hamaoka",
+      "name": "Hamaoka",
+      "lat": 34.62,
+      "lon": 138.14,
+      "type": "plant",
+      "status": "inactive",
+      "operator": "JP"
+    },
+    {
+      "id": "takahama",
+      "name": "Takahama",
+      "lat": 35.52,
+      "lon": 135.51,
+      "type": "plant",
+      "status": "active",
+      "operator": "JP"
+    },
+    {
+      "id": "ohi",
+      "name": "Ohi",
+      "lat": 35.54,
+      "lon": 135.66,
+      "type": "plant",
+      "status": "active",
+      "operator": "JP"
+    },
+    {
+      "id": "sendai",
+      "name": "Sendai",
+      "lat": 31.83,
+      "lon": 130.19,
+      "type": "plant",
+      "status": "active",
+      "operator": "JP"
+    },
+    {
+      "id": "ikata",
+      "name": "Ikata",
+      "lat": 33.49,
+      "lon": 132.31,
+      "type": "plant",
+      "status": "active",
+      "operator": "JP"
+    },
+    {
+      "id": "rokkasho",
+      "name": "Rokkasho",
+      "lat": 40.96,
+      "lon": 141.33,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "JP"
+    },
+    {
+      "id": "kori",
+      "name": "Kori",
+      "lat": 35.32,
+      "lon": 129.29,
+      "type": "plant",
+      "status": "active",
+      "operator": "KR"
+    },
+    {
+      "id": "hanbit",
+      "name": "Hanbit",
+      "lat": 35.41,
+      "lon": 126.42,
+      "type": "plant",
+      "status": "active",
+      "operator": "KR"
+    },
+    {
+      "id": "hanul",
+      "name": "Hanul",
+      "lat": 37.09,
+      "lon": 129.38,
+      "type": "plant",
+      "status": "active",
+      "operator": "KR"
+    },
+    {
+      "id": "wolsong",
+      "name": "Wolsong",
+      "lat": 35.71,
+      "lon": 129.47,
+      "type": "plant",
+      "status": "active",
+      "operator": "KR"
+    },
+    {
+      "id": "tarapur",
+      "name": "Tarapur",
+      "lat": 19.83,
+      "lon": 72.65,
+      "type": "plant",
+      "status": "active",
+      "operator": "IN"
+    },
+    {
+      "id": "kudankulam",
+      "name": "Kudankulam",
+      "lat": 8.17,
+      "lon": 77.71,
+      "type": "plant",
+      "status": "active",
+      "operator": "IN"
+    },
+    {
+      "id": "kakrapar",
+      "name": "Kakrapar",
+      "lat": 21.24,
+      "lon": 73.35,
+      "type": "plant",
+      "status": "active",
+      "operator": "IN"
+    },
+    {
+      "id": "rawatbhata",
+      "name": "Rawatbhata",
+      "lat": 24.88,
+      "lon": 75.59,
+      "type": "plant",
+      "status": "active",
+      "operator": "IN"
+    },
+    {
+      "id": "bruce",
+      "name": "Bruce",
+      "lat": 44.33,
+      "lon": -81.6,
+      "type": "plant",
+      "status": "active",
+      "operator": "CA"
+    },
+    {
+      "id": "darlington",
+      "name": "Darlington",
+      "lat": 43.87,
+      "lon": -78.72,
+      "type": "plant",
+      "status": "active",
+      "operator": "CA"
+    },
+    {
+      "id": "pickering",
+      "name": "Pickering",
+      "lat": 43.81,
+      "lon": -79.07,
+      "type": "plant",
+      "status": "active",
+      "operator": "CA"
+    },
+    {
+      "id": "paks",
+      "name": "Paks",
+      "lat": 46.57,
+      "lon": 18.86,
+      "type": "plant",
+      "status": "active",
+      "operator": "HU"
+    },
+    {
+      "id": "temelin",
+      "name": "Temelín",
+      "lat": 49.18,
+      "lon": 14.38,
+      "type": "plant",
+      "status": "active",
+      "operator": "CZ"
+    },
+    {
+      "id": "dukovany",
+      "name": "Dukovany",
+      "lat": 49.09,
+      "lon": 16.15,
+      "type": "plant",
+      "status": "active",
+      "operator": "CZ"
+    },
+    {
+      "id": "mochovce",
+      "name": "Mochovce",
+      "lat": 48.28,
+      "lon": 18.44,
+      "type": "plant",
+      "status": "active",
+      "operator": "SK"
+    },
+    {
+      "id": "kozloduy",
+      "name": "Kozloduy",
+      "lat": 43.75,
+      "lon": 23.63,
+      "type": "plant",
+      "status": "active",
+      "operator": "BG"
+    },
+    {
+      "id": "cernavoda",
+      "name": "Cernavoda",
+      "lat": 44.32,
+      "lon": 28.05,
+      "type": "plant",
+      "status": "active",
+      "operator": "RO"
+    },
+    {
+      "id": "ringhals",
+      "name": "Ringhals",
+      "lat": 57.26,
+      "lon": 12.11,
+      "type": "plant",
+      "status": "active",
+      "operator": "SE"
+    },
+    {
+      "id": "forsmark",
+      "name": "Forsmark",
+      "lat": 60.41,
+      "lon": 18.17,
+      "type": "plant",
+      "status": "active",
+      "operator": "SE"
+    },
+    {
+      "id": "oskarshamn",
+      "name": "Oskarshamn",
+      "lat": 57.42,
+      "lon": 16.67,
+      "type": "plant",
+      "status": "active",
+      "operator": "SE"
+    },
+    {
+      "id": "olkiluoto",
+      "name": "Olkiluoto",
+      "lat": 61.24,
+      "lon": 21.44,
+      "type": "plant",
+      "status": "active",
+      "operator": "FI"
+    },
+    {
+      "id": "loviisa",
+      "name": "Loviisa",
+      "lat": 60.37,
+      "lon": 26.35,
+      "type": "plant",
+      "status": "active",
+      "operator": "FI"
+    },
+    {
+      "id": "borssele",
+      "name": "Borssele",
+      "lat": 51.43,
+      "lon": 3.72,
+      "type": "plant",
+      "status": "active",
+      "operator": "NL"
+    },
+    {
+      "id": "doel",
+      "name": "Doel",
+      "lat": 51.33,
+      "lon": 4.26,
+      "type": "plant",
+      "status": "active",
+      "operator": "BE"
+    },
+    {
+      "id": "tihange",
+      "name": "Tihange",
+      "lat": 50.53,
+      "lon": 5.27,
+      "type": "plant",
+      "status": "active",
+      "operator": "BE"
+    },
+    {
+      "id": "almaraz",
+      "name": "Almaraz",
+      "lat": 39.81,
+      "lon": -5.7,
+      "type": "plant",
+      "status": "active",
+      "operator": "ES"
+    },
+    {
+      "id": "cofrentes",
+      "name": "Cofrentes",
+      "lat": 39.21,
+      "lon": -1.05,
+      "type": "plant",
+      "status": "active",
+      "operator": "ES"
+    },
+    {
+      "id": "asco",
+      "name": "Ascó",
+      "lat": 41.2,
+      "lon": 0.57,
+      "type": "plant",
+      "status": "active",
+      "operator": "ES"
+    },
+    {
+      "id": "vandellos",
+      "name": "Vandellòs",
+      "lat": 40.95,
+      "lon": 0.87,
+      "type": "plant",
+      "status": "active",
+      "operator": "ES"
+    },
+    {
+      "id": "trillo",
+      "name": "Trillo",
+      "lat": 40.7,
+      "lon": -2.62,
+      "type": "plant",
+      "status": "active",
+      "operator": "ES"
+    },
+    {
+      "id": "krsko",
+      "name": "Krško",
+      "lat": 45.94,
+      "lon": 15.52,
+      "type": "plant",
+      "status": "active",
+      "operator": "SI"
+    },
+    {
+      "id": "koeberg",
+      "name": "Koeberg",
+      "lat": -33.6767,
+      "lon": 18.4347,
+      "type": "plant",
+      "status": "active",
+      "operator": "ZA"
+    },
+    {
+      "id": "atucha",
+      "name": "Atucha",
+      "lat": -33.97,
+      "lon": -59.21,
+      "type": "plant",
+      "status": "active",
+      "operator": "AR"
+    },
+    {
+      "id": "embalse",
+      "name": "Embalse",
+      "lat": -32.23,
+      "lon": -64.47,
+      "type": "plant",
+      "status": "active",
+      "operator": "AR"
+    },
+    {
+      "id": "angra",
+      "name": "Angra",
+      "lat": -23.01,
+      "lon": -44.46,
+      "type": "plant",
+      "status": "active",
+      "operator": "BR"
+    },
+    {
+      "id": "laguna_verde",
+      "name": "Laguna Verde",
+      "lat": 19.719,
+      "lon": -96.406,
+      "type": "plant",
+      "status": "active",
+      "operator": "MX"
+    },
+    {
+      "id": "barakah",
+      "name": "Barakah",
+      "lat": 23.95,
+      "lon": 52.19,
+      "type": "plant",
+      "status": "active",
+      "operator": "AE"
+    },
+    {
+      "id": "bushehr",
+      "name": "Bushehr",
+      "lat": 28.83,
+      "lon": 50.89,
+      "type": "plant",
+      "status": "active",
+      "operator": "IR"
+    },
+    {
+      "id": "natanz",
+      "name": "Natanz",
+      "lat": 33.72,
+      "lon": 51.73,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "IR"
+    },
+    {
+      "id": "fordow",
+      "name": "Fordow",
+      "lat": 34.88,
+      "lon": 51,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "IR"
+    },
+    {
+      "id": "yongbyon",
+      "name": "Yongbyon",
+      "lat": 39.8,
+      "lon": 125.75,
+      "type": "weapons",
+      "status": "active",
+      "operator": "KP"
+    },
+    {
+      "id": "dimona",
+      "name": "Dimona",
+      "lat": 31,
+      "lon": 35.15,
+      "type": "weapons",
+      "status": "active",
+      "operator": "IL"
+    },
+    {
+      "id": "pakistan_kahuta",
+      "name": "Kahuta",
+      "lat": 33.59,
+      "lon": 73.4,
+      "type": "enrichment",
+      "status": "active",
+      "operator": "PK"
+    },
+    {
+      "id": "pakistan_khushab",
+      "name": "Khushab",
+      "lat": 32.02,
+      "lon": 72.22,
+      "type": "weapons",
+      "status": "active",
+      "operator": "PK"
+    },
+    {
+      "id": "punggye_ri",
+      "name": "Punggye-ri",
+      "lat": 41.28,
+      "lon": 129.08,
+      "type": "test-site",
+      "status": "active",
+      "operator": "KP"
+    },
+    {
+      "id": "lop_nur",
+      "name": "Lop Nur",
+      "lat": 41.75,
+      "lon": 88.35,
+      "type": "test-site",
+      "status": "inactive",
+      "operator": "CN"
+    },
+    {
+      "id": "novaya_zemlya",
+      "name": "Novaya Zemlya",
+      "lat": 73.37,
+      "lon": 54.78,
+      "type": "test-site",
+      "status": "inactive",
+      "operator": "RU"
+    },
+    {
+      "id": "nevada_nts",
+      "name": "Nevada NTS",
+      "lat": 37.07,
+      "lon": -116.05,
+      "type": "test-site",
+      "status": "inactive",
+      "operator": "US"
+    },
+    {
+      "id": "semipalatinsk",
+      "name": "Semipalatinsk",
+      "lat": 50.07,
+      "lon": 78.43,
+      "type": "test-site",
+      "status": "inactive",
+      "operator": "KZ"
+    }
+  ],
+  "economic": [
+    {
+      "id": "nyse",
+      "name": "NYSE",
+      "type": "exchange",
+      "lat": 40.7069,
+      "lon": -74.0089,
+      "country": "USA",
+      "marketHours": {
+        "open": "09:30",
+        "close": "16:00",
+        "timezone": "America/New_York"
+      },
+      "description": "New York Stock Exchange - World's largest stock exchange"
+    },
+    {
+      "id": "nasdaq",
+      "name": "NASDAQ",
+      "type": "exchange",
+      "lat": 40.7569,
+      "lon": -73.9896,
+      "country": "USA",
+      "marketHours": {
+        "open": "09:30",
+        "close": "16:00",
+        "timezone": "America/New_York"
+      },
+      "description": "Tech-heavy exchange"
+    },
+    {
+      "id": "fed",
+      "name": "Federal Reserve",
+      "type": "central-bank",
+      "lat": 38.8927,
+      "lon": -77.0459,
+      "country": "USA",
+      "description": "US Central Bank - Controls USD monetary policy"
+    },
+    {
+      "id": "cme",
+      "name": "CME Group",
+      "type": "exchange",
+      "lat": 41.8819,
+      "lon": -87.6278,
+      "country": "USA",
+      "description": "Chicago Mercantile Exchange - Futures & derivatives"
+    },
+    {
+      "id": "tsx",
+      "name": "TSX",
+      "type": "exchange",
+      "lat": 43.6489,
+      "lon": -79.385,
+      "country": "Canada",
+      "marketHours": {
+        "open": "09:30",
+        "close": "16:00",
+        "timezone": "America/Toronto"
+      },
+      "description": "Toronto Stock Exchange"
+    },
+    {
+      "id": "bovespa",
+      "name": "B3",
+      "type": "exchange",
+      "lat": -23.5505,
+      "lon": -46.6333,
+      "country": "Brazil",
+      "description": "Brazilian Stock Exchange (B3/Bovespa)"
+    },
+    {
+      "id": "lse",
+      "name": "LSE",
+      "type": "exchange",
+      "lat": 51.5145,
+      "lon": -0.094,
+      "country": "GB",
+      "marketHours": {
+        "open": "08:00",
+        "close": "16:30",
+        "timezone": "Europe/London"
+      },
+      "description": "London Stock Exchange"
+    },
+    {
+      "id": "boe",
+      "name": "Bank of England",
+      "type": "central-bank",
+      "lat": 51.5142,
+      "lon": -0.088,
+      "country": "GB",
+      "description": "UK Central Bank"
+    },
+    {
+      "id": "ecb",
+      "name": "ECB",
+      "type": "central-bank",
+      "lat": 50.1096,
+      "lon": 8.6732,
+      "country": "Germany",
+      "description": "European Central Bank - Controls EUR"
+    },
+    {
+      "id": "euronext",
+      "name": "Euronext",
+      "type": "exchange",
+      "lat": 48.869,
+      "lon": 2.3364,
+      "country": "France",
+      "marketHours": {
+        "open": "09:00",
+        "close": "17:30",
+        "timezone": "Europe/Paris"
+      },
+      "description": "Pan-European Exchange (Paris, Amsterdam, Brussels, Lisbon)"
+    },
+    {
+      "id": "dax",
+      "name": "Deutsche Börse",
+      "type": "exchange",
+      "lat": 50.1109,
+      "lon": 8.6821,
+      "country": "Germany",
+      "marketHours": {
+        "open": "09:00",
+        "close": "17:30",
+        "timezone": "Europe/Berlin"
+      },
+      "description": "Frankfurt Stock Exchange - DAX"
+    },
+    {
+      "id": "six",
+      "name": "SIX Swiss",
+      "type": "exchange",
+      "lat": 47.3769,
+      "lon": 8.5417,
+      "country": "Switzerland",
+      "description": "Swiss Exchange"
+    },
+    {
+      "id": "snb",
+      "name": "SNB",
+      "type": "central-bank",
+      "lat": 46.948,
+      "lon": 7.4474,
+      "country": "Switzerland",
+      "description": "Swiss National Bank"
+    },
+    {
+      "id": "tse",
+      "name": "Tokyo SE",
+      "type": "exchange",
+      "lat": 35.683,
+      "lon": 139.7744,
+      "country": "Japan",
+      "marketHours": {
+        "open": "09:00",
+        "close": "15:00",
+        "timezone": "Asia/Tokyo"
+      },
+      "description": "Tokyo Stock Exchange - Nikkei"
+    },
+    {
+      "id": "boj",
+      "name": "Bank of Japan",
+      "type": "central-bank",
+      "lat": 35.6855,
+      "lon": 139.7579,
+      "country": "Japan",
+      "description": "Japan Central Bank - Controls JPY"
+    },
+    {
+      "id": "sse",
+      "name": "Shanghai SE",
+      "type": "exchange",
+      "lat": 31.2304,
+      "lon": 121.4737,
+      "country": "China",
+      "marketHours": {
+        "open": "09:30",
+        "close": "15:00",
+        "timezone": "Asia/Shanghai"
+      },
+      "description": "Shanghai Stock Exchange"
+    },
+    {
+      "id": "szse",
+      "name": "Shenzhen SE",
+      "type": "exchange",
+      "lat": 22.5431,
+      "lon": 114.0579,
+      "country": "China",
+      "description": "Shenzhen Stock Exchange - Tech focus"
+    },
+    {
+      "id": "pboc",
+      "name": "PBOC",
+      "type": "central-bank",
+      "lat": 39.9208,
+      "lon": 116.4074,
+      "country": "China",
+      "description": "People's Bank of China - Controls CNY"
+    },
+    {
+      "id": "hkex",
+      "name": "HKEX",
+      "type": "exchange",
+      "lat": 22.2833,
+      "lon": 114.1577,
+      "country": "Hong Kong",
+      "marketHours": {
+        "open": "09:30",
+        "close": "16:00",
+        "timezone": "Asia/Hong_Kong"
+      },
+      "description": "Hong Kong Exchange"
+    },
+    {
+      "id": "sgx",
+      "name": "SGX",
+      "type": "exchange",
+      "lat": 1.2834,
+      "lon": 103.8607,
+      "country": "Singapore",
+      "description": "Singapore Exchange"
+    },
+    {
+      "id": "mas",
+      "name": "MAS",
+      "type": "central-bank",
+      "lat": 1.2789,
+      "lon": 103.8536,
+      "country": "Singapore",
+      "description": "Monetary Authority of Singapore"
+    },
+    {
+      "id": "kospi",
+      "name": "KRX",
+      "type": "exchange",
+      "lat": 37.5665,
+      "lon": 126.978,
+      "country": "South Korea",
+      "marketHours": {
+        "open": "09:00",
+        "close": "15:30",
+        "timezone": "Asia/Seoul"
+      },
+      "description": "Korea Exchange - KOSPI"
+    },
+    {
+      "id": "bse",
+      "name": "BSE",
+      "type": "exchange",
+      "lat": 18.9307,
+      "lon": 72.8335,
+      "country": "India",
+      "marketHours": {
+        "open": "09:15",
+        "close": "15:30",
+        "timezone": "Asia/Kolkata"
+      },
+      "description": "Bombay Stock Exchange - Sensex"
+    },
+    {
+      "id": "nse",
+      "name": "NSE India",
+      "type": "exchange",
+      "lat": 19.0571,
+      "lon": 72.8621,
+      "country": "India",
+      "description": "National Stock Exchange - Nifty"
+    },
+    {
+      "id": "rbi",
+      "name": "RBI",
+      "type": "central-bank",
+      "lat": 18.9322,
+      "lon": 72.8351,
+      "country": "India",
+      "description": "Reserve Bank of India"
+    },
+    {
+      "id": "asx",
+      "name": "ASX",
+      "type": "exchange",
+      "lat": -33.8688,
+      "lon": 151.2093,
+      "country": "Australia",
+      "marketHours": {
+        "open": "10:00",
+        "close": "16:00",
+        "timezone": "Australia/Sydney"
+      },
+      "description": "Australian Securities Exchange"
+    },
+    {
+      "id": "rba",
+      "name": "RBA",
+      "type": "central-bank",
+      "lat": -33.8654,
+      "lon": 151.2105,
+      "country": "Australia",
+      "description": "Reserve Bank of Australia"
+    },
+    {
+      "id": "tadawul",
+      "name": "Tadawul",
+      "type": "exchange",
+      "lat": 24.6877,
+      "lon": 46.7219,
+      "country": "Saudi Arabia",
+      "marketHours": {
+        "open": "10:00",
+        "close": "15:00",
+        "timezone": "Asia/Riyadh"
+      },
+      "description": "Saudi Stock Exchange - Largest in Arab world"
+    },
+    {
+      "id": "adx",
+      "name": "ADX",
+      "type": "exchange",
+      "lat": 24.4539,
+      "lon": 54.3773,
+      "country": "UAE",
+      "marketHours": {
+        "open": "10:00",
+        "close": "14:00",
+        "timezone": "Asia/Dubai"
+      },
+      "description": "Abu Dhabi Securities Exchange"
+    },
+    {
+      "id": "dfm",
+      "name": "DFM",
+      "type": "exchange",
+      "lat": 25.2221,
+      "lon": 55.2867,
+      "country": "UAE",
+      "marketHours": {
+        "open": "10:00",
+        "close": "14:00",
+        "timezone": "Asia/Dubai"
+      },
+      "description": "Dubai Financial Market"
+    },
+    {
+      "id": "qse",
+      "name": "QSE",
+      "type": "exchange",
+      "lat": 25.2854,
+      "lon": 51.531,
+      "country": "Qatar",
+      "marketHours": {
+        "open": "09:30",
+        "close": "13:15",
+        "timezone": "Asia/Qatar"
+      },
+      "description": "Qatar Stock Exchange"
+    },
+    {
+      "id": "bkw",
+      "name": "Boursa Kuwait",
+      "type": "exchange",
+      "lat": 29.3759,
+      "lon": 47.9774,
+      "country": "Kuwait",
+      "marketHours": {
+        "open": "09:00",
+        "close": "12:30",
+        "timezone": "Asia/Kuwait"
+      },
+      "description": "Kuwait Stock Exchange"
+    },
+    {
+      "id": "bse_bahrain",
+      "name": "Bahrain Bourse",
+      "type": "exchange",
+      "lat": 26.2285,
+      "lon": 50.586,
+      "country": "Bahrain",
+      "description": "Bahrain Stock Exchange"
+    },
+    {
+      "id": "egx",
+      "name": "EGX",
+      "type": "exchange",
+      "lat": 30.0444,
+      "lon": 31.2357,
+      "country": "Egypt",
+      "marketHours": {
+        "open": "10:00",
+        "close": "14:30",
+        "timezone": "Africa/Cairo"
+      },
+      "description": "Egyptian Exchange - Cairo"
+    },
+    {
+      "id": "tase",
+      "name": "TASE",
+      "type": "exchange",
+      "lat": 32.0853,
+      "lon": 34.7818,
+      "country": "Israel",
+      "marketHours": {
+        "open": "09:59",
+        "close": "17:14",
+        "timezone": "Asia/Jerusalem"
+      },
+      "description": "Tel Aviv Stock Exchange"
+    },
+    {
+      "id": "jse",
+      "name": "JSE",
+      "type": "exchange",
+      "lat": -26.1447,
+      "lon": 28.0381,
+      "country": "South Africa",
+      "marketHours": {
+        "open": "09:00",
+        "close": "17:00",
+        "timezone": "Africa/Johannesburg"
+      },
+      "description": "Johannesburg Stock Exchange"
+    },
+    {
+      "id": "nse_nigeria",
+      "name": "NGX",
+      "type": "exchange",
+      "lat": 6.4541,
+      "lon": 3.4218,
+      "country": "Nigeria",
+      "description": "Nigerian Exchange Group - Lagos"
+    },
+    {
+      "id": "casa",
+      "name": "Casablanca SE",
+      "type": "exchange",
+      "lat": 33.5731,
+      "lon": -7.5898,
+      "country": "Morocco",
+      "description": "Casablanca Stock Exchange"
+    },
+    {
+      "id": "dubai_hub",
+      "name": "DIFC",
+      "type": "financial-hub",
+      "lat": 25.2116,
+      "lon": 55.2708,
+      "country": "UAE",
+      "description": "Dubai International Financial Centre"
+    },
+    {
+      "id": "cayman",
+      "name": "Cayman Islands",
+      "type": "financial-hub",
+      "lat": 19.3133,
+      "lon": -81.2546,
+      "country": "Cayman Islands",
+      "description": "Offshore financial center"
+    },
+    {
+      "id": "luxembourg",
+      "name": "Luxembourg",
+      "type": "financial-hub",
+      "lat": 49.6116,
+      "lon": 6.1319,
+      "country": "Luxembourg",
+      "description": "European investment fund center"
+    }
+  ],
+  "spaceports": [
+    {
+      "id": "ksc",
+      "name": "Kennedy Space Center",
+      "lat": 28.57,
+      "lon": -80.64,
+      "country": "USA",
+      "operator": "NASA/Space Force",
+      "status": "active",
+      "launches": "High"
+    },
+    {
+      "id": "vandenberg",
+      "name": "Vandenberg SFB",
+      "lat": 34.74,
+      "lon": -120.57,
+      "country": "USA",
+      "operator": "US Space Force",
+      "status": "active",
+      "launches": "Medium"
+    },
+    {
+      "id": "boca_chica",
+      "name": "Starbase",
+      "lat": 25.99,
+      "lon": -97.15,
+      "country": "USA",
+      "operator": "SpaceX",
+      "status": "active",
+      "launches": "High"
+    },
+    {
+      "id": "baikonur",
+      "name": "Baikonur Cosmodrome",
+      "lat": 45.96,
+      "lon": 63.3,
+      "country": "Kazakhstan",
+      "operator": "Roscosmos",
+      "status": "active",
+      "launches": "Medium"
+    },
+    {
+      "id": "plesetsk",
+      "name": "Plesetsk Cosmodrome",
+      "lat": 62.92,
+      "lon": 40.57,
+      "country": "Russia",
+      "operator": "Roscosmos/Military",
+      "status": "active",
+      "launches": "Medium"
+    },
+    {
+      "id": "vostochny",
+      "name": "Vostochny Cosmodrome",
+      "lat": 51.88,
+      "lon": 128.33,
+      "country": "Russia",
+      "operator": "Roscosmos",
+      "status": "active",
+      "launches": "Low"
+    },
+    {
+      "id": "jiuquan",
+      "name": "Jiuquan SLC",
+      "lat": 40.96,
+      "lon": 100.29,
+      "country": "China",
+      "operator": "CNSA",
+      "status": "active",
+      "launches": "High"
+    },
+    {
+      "id": "xichang",
+      "name": "Xichang SLC",
+      "lat": 28.24,
+      "lon": 102.02,
+      "country": "China",
+      "operator": "CNSA",
+      "status": "active",
+      "launches": "High"
+    },
+    {
+      "id": "wenchang",
+      "name": "Wenchang SLC",
+      "lat": 19.61,
+      "lon": 110.95,
+      "country": "China",
+      "operator": "CNSA",
+      "status": "active",
+      "launches": "Medium"
+    },
+    {
+      "id": "kourou",
+      "name": "Guiana Space Centre",
+      "lat": 5.23,
+      "lon": -52.76,
+      "country": "France",
+      "operator": "ESA/CNES",
+      "status": "active",
+      "launches": "Medium"
+    },
+    {
+      "id": "sriharikota",
+      "name": "Satish Dhawan SC",
+      "lat": 13.72,
+      "lon": 80.23,
+      "country": "India",
+      "operator": "ISRO",
+      "status": "active",
+      "launches": "Medium"
+    },
+    {
+      "id": "tanegashima",
+      "name": "Tanegashima SC",
+      "lat": 30.4,
+      "lon": 130.97,
+      "country": "Japan",
+      "operator": "JAXA",
+      "status": "active",
+      "launches": "Low"
+    }
+  ],
+  "bases": [
+    {
+      "id": "ream_naval_base",
+      "name": "Ream Naval Base",
+      "lat": 10.5034,
+      "lon": 103.609,
+      "type": "china",
+      "country": "Cambodia",
+      "arm": "PLA Navy(Access Right)",
+      "status": "controversial",
+      "description": "PLA Navy(Access Right). Host: Cambodia. Status disputed."
+    },
+    {
+      "id": "chinese_pla_support_base",
+      "name": "Chinese PLA Support Base",
+      "lat": 11.5915,
+      "lon": 43.0602,
+      "type": "china",
+      "country": "Djibouti",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Djibouti."
+    },
+    {
+      "id": "chinese_naval_intelligence_base",
+      "name": "Chinese Naval Intelligence Base",
+      "lat": 14.1463,
+      "lon": 93.3588,
+      "type": "china",
+      "country": "Myanmar",
+      "arm": "Army",
+      "status": "controversial",
+      "description": "Army. Host: Myanmar. Status disputed."
+    },
+    {
+      "id": "military_base",
+      "name": "Military Base",
+      "lat": 37.4381,
+      "lon": 74.9128,
+      "type": "china",
+      "country": "Tajikistan",
+      "arm": "Army",
+      "status": "controversial",
+      "description": "Army. Host: Tajikistan. Status disputed."
+    },
+    {
+      "id": "unnamed_military_base",
+      "name": "Unnamed Military Base",
+      "lat": 9.54583,
+      "lon": 112.8875,
+      "type": "china",
+      "country": "Disputed",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms."
+    },
+    {
+      "id": "unnamed_military_base_2",
+      "name": "Unnamed Military Base",
+      "lat": 10.92361,
+      "lon": 114.08472,
+      "type": "china",
+      "country": "Disputed",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms."
+    },
+    {
+      "id": "unnamed_military_base_3",
+      "name": "Unnamed Military Base",
+      "lat": 9.9,
+      "lon": 115.53333,
+      "type": "china",
+      "country": "Disputed",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms."
+    },
+    {
+      "id": "unnamed_military_base_4",
+      "name": "Unnamed Military Base",
+      "lat": 16.83444,
+      "lon": 112.33972,
+      "type": "china",
+      "country": "Disputed",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms."
+    },
+    {
+      "id": "ndjamena_air_force_base",
+      "name": "N'Djamena Air Force Base",
+      "lat": 12.13361,
+      "lon": 15.03389,
+      "type": "france",
+      "country": "Chad",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Chad."
+    },
+    {
+      "id": "naval_base_of_hron",
+      "name": "Naval base of Héron",
+      "lat": 11.55663,
+      "lon": 43.14419,
+      "type": "france",
+      "country": "Djibouti",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Djibouti."
+    },
+    {
+      "id": "les_lments_franais_au_gabon",
+      "name": "Les éléments français au Gabon",
+      "lat": 0.42048,
+      "lon": 9.43806,
+      "type": "france",
+      "country": "Gabon",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Gabon."
+    },
+    {
+      "id": "fassberg_air_base",
+      "name": "Fassberg Air Base",
+      "lat": 52.91944,
+      "lon": 10.18889,
+      "type": "france",
+      "country": "Germany",
+      "arm": "Franco-German training facilities",
+      "status": "active",
+      "description": "Franco-German training facilities. Host: Germany."
+    },
+    {
+      "id": "les_forces_franaises_en_cte_divoire_ffci",
+      "name": "Les forces françaises en Côte d'Ivoire (FFCI)",
+      "lat": 7.50357,
+      "lon": -5.54897,
+      "type": "france",
+      "country": "Ivory Coast",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Ivory Coast."
+    },
+    {
+      "id": "rayak_air_base",
+      "name": "Rayak Air Base",
+      "lat": 33.85222,
+      "lon": 35.99028,
+      "type": "france",
+      "country": "Lebanon",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Lebanon."
+    },
+    {
+      "id": "niamey_air_force_base",
+      "name": "Niamey Air Force Base",
+      "lat": 13.48167,
+      "lon": 2.17028,
+      "type": "france",
+      "country": "Niger",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Niger."
+    },
+    {
+      "id": "les_lments_franais_au_sngal",
+      "name": "Les éléments français au Sénégal",
+      "lat": 14.75069,
+      "lon": -17.45357,
+      "type": "france",
+      "country": "Senegal",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Senegal."
+    },
+    {
+      "id": "unnamed_military_base_5",
+      "name": "Unnamed Military Base",
+      "lat": 36.89111,
+      "lon": 38.35361,
+      "type": "france",
+      "country": "Syria",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Syria."
+    },
+    {
+      "id": "unnamed_military_base_6",
+      "name": "Unnamed Military Base",
+      "lat": 36.5875,
+      "lon": 38.29972,
+      "type": "france",
+      "country": "Syria",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Syria."
+    },
+    {
+      "id": "unnamed_military_base_7",
+      "name": "Unnamed Military Base",
+      "lat": 36.38528,
+      "lon": 38.85944,
+      "type": "france",
+      "country": "Syria",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Syria."
+    },
+    {
+      "id": "abu_dhabi_base",
+      "name": "Abu Dhabi Base",
+      "lat": 24.52151,
+      "lon": 54.39611,
+      "type": "france",
+      "country": "United Arab Emirates",
+      "arm": "Navy, Air Force",
+      "status": "active",
+      "description": "Navy, Air Force. Host: United Arab Emirates."
+    },
+    {
+      "id": "indian_military_training_team",
+      "name": "Indian military training team",
+      "lat": 27.36042,
+      "lon": 89.30152,
+      "type": "india",
+      "country": "Bhutan",
+      "arm": "Radar facilities",
+      "status": "active",
+      "description": "Radar facilities. Host: Bhutan."
+    },
+    {
+      "id": "port_of_shahid_beheshti",
+      "name": "Port of Shahid Beheshti",
+      "lat": 25.29752,
+      "lon": 60.61111,
+      "type": "india",
+      "country": "Iran",
+      "arm": "Navy & Air Force (Access Right)",
+      "status": "active",
+      "description": "Navy & Air Force (Access Right). Host: Iran."
+    },
+    {
+      "id": "port_of_sittwe",
+      "name": "Port of Sittwe",
+      "lat": 20.13937,
+      "lon": 92.90043,
+      "type": "india",
+      "country": "Myanmar",
+      "arm": "Listening Post",
+      "status": "planned",
+      "description": "Listening Post. Host: Myanmar. Planned/under construction."
+    },
+    {
+      "id": "ras_al_hadd_listening_post",
+      "name": "Ras al Hadd Listening post",
+      "lat": 22.53308,
+      "lon": 59.79831,
+      "type": "india",
+      "country": "Oman",
+      "arm": "Listening Post",
+      "status": "active",
+      "description": "Listening Post. Host: Oman."
+    },
+    {
+      "id": "muscat_naval_base",
+      "name": "Muscat naval base",
+      "lat": 23.58764,
+      "lon": 58.27884,
+      "type": "india",
+      "country": "Oman",
+      "arm": "Navy(Berthing right)",
+      "status": "active",
+      "description": "Navy(Berthing right). Host: Oman."
+    },
+    {
+      "id": "duqm_port",
+      "name": "Duqm port",
+      "lat": 19.666,
+      "lon": 57.72627,
+      "type": "india",
+      "country": "Oman",
+      "arm": "Navy(Berthing right)",
+      "status": "active",
+      "description": "Navy(Berthing right). Host: Oman."
+    },
+    {
+      "id": "naval_facilities_coastal_surveillance_ra",
+      "name": "Naval Facilities, Coastal Surveillance Radar (CSR) station",
+      "lat": -9.73661,
+      "lon": 46.51097,
+      "type": "india",
+      "country": "Seychelles",
+      "arm": "Navy",
+      "status": "planned",
+      "description": "Navy. Host: Seychelles. Planned/under construction."
+    },
+    {
+      "id": "farkhor_air_base",
+      "name": "Farkhor air base",
+      "lat": 37.47011,
+      "lon": 69.38089,
+      "type": "india",
+      "country": "Tajikistan",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Tajikistan."
+    },
+    {
+      "id": "coastal_surveillance_radar_station",
+      "name": "Coastal Surveillance Radar station",
+      "lat": -0.62728,
+      "lon": 73.09722,
+      "type": "india",
+      "country": "Maldives",
+      "arm": "Radar facilities",
+      "status": "active",
+      "description": "Radar facilities. Host: Maldives."
+    },
+    {
+      "id": "coastal_surveillance_radar_csr_station",
+      "name": "Coastal Surveillance Radar (CSR) station",
+      "lat": -12.01845,
+      "lon": 49.26322,
+      "type": "india",
+      "country": "Madagascar",
+      "arm": "Radar facilities",
+      "status": "active",
+      "description": "Radar facilities. Host: Madagascar."
+    },
+    {
+      "id": "coastal_surveillance_radar_csr_station_2",
+      "name": "Coastal Surveillance Radar (CSR) station",
+      "lat": -19.99894,
+      "lon": 57.62941,
+      "type": "india",
+      "country": "Mauritius",
+      "arm": "Radar facilities",
+      "status": "active",
+      "description": "Radar facilities. Host: Mauritius."
+    },
+    {
+      "id": "listening_post_and_coastal_surveillance_",
+      "name": "Listening post and Coastal Surveillance Radar station",
+      "lat": 21.91089,
+      "lon": 90.0497,
+      "type": "india",
+      "country": "Bangladesh",
+      "arm": "Radar facilities",
+      "status": "planned",
+      "description": "Radar facilities. Host: Bangladesh. Planned/under construction."
+    },
+    {
+      "id": "berth_rights_and_right_to_station_its_tr",
+      "name": "Berth rights and right to station its troops in Qatar",
+      "lat": 25.30761,
+      "lon": 51.2093,
+      "type": "india",
+      "country": "Qatar",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Qatar."
+    },
+    {
+      "id": "japan_selfdefense_force_base_djibouti",
+      "name": "Japan Self-Defense Force Base Djibouti",
+      "lat": 11.55311,
+      "lon": 43.14423,
+      "type": "japan",
+      "country": "Djibouti",
+      "arm": "India shares the maritime assets of Japan",
+      "status": "active",
+      "description": "India shares the maritime assets of Japan. Host: Djibouti."
+    },
+    {
+      "id": "heart_miliraty_base",
+      "name": "Heart miliraty base",
+      "lat": 34.35091,
+      "lon": 62.20565,
+      "type": "italy",
+      "country": "Afghanistan",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Afghanistan."
+    },
+    {
+      "id": "djibouti_militaray_base",
+      "name": "Djibouti militaray base",
+      "lat": 11.54816,
+      "lon": 43.17267,
+      "type": "italy",
+      "country": "Djibouti",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Djibouti."
+    },
+    {
+      "id": "ahmad_aljaber_air_base",
+      "name": "Ahmad al-Jaber Air Base",
+      "lat": 28.93492,
+      "lon": 47.79197,
+      "type": "italy",
+      "country": "Kuwait",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Kuwait."
+    },
+    {
+      "id": "libya_military_base",
+      "name": "Libya Military Base",
+      "lat": 24.96046,
+      "lon": 10.17728,
+      "type": "italy",
+      "country": "Libya",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Libya."
+    },
+    {
+      "id": "al_minhad_air_base",
+      "name": "Al Minhad air base",
+      "lat": 25.02694,
+      "lon": 55.36611,
+      "type": "italy",
+      "country": "United Arab Emirates",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: United Arab Emirates."
+    },
+    {
+      "id": "russian_102nd_military_base",
+      "name": "Russian 102nd Military Base",
+      "lat": 40.79,
+      "lon": 43.825,
+      "type": "russia",
+      "country": "Armenia",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Armenia."
+    },
+    {
+      "id": "russian_3624th_airbase",
+      "name": "Russian 3624th Airbase",
+      "lat": 40.128,
+      "lon": 44.472,
+      "type": "russia",
+      "country": "Armenia",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Armenia."
+    },
+    {
+      "id": "vileyka_vlf_transmitter",
+      "name": "Vileyka VLF transmitter",
+      "lat": 54.4636,
+      "lon": 26.778,
+      "type": "russia",
+      "country": "Belarus",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Belarus."
+    },
+    {
+      "id": "hantsavichy_radar_station",
+      "name": "Hantsavichy Radar Station",
+      "lat": 52.857,
+      "lon": 26.481,
+      "type": "russia",
+      "country": "Belarus",
+      "arm": "Russian Aerospace Defence Forces",
+      "status": "active",
+      "description": "Russian Aerospace Defence Forces. Host: Belarus."
+    },
+    {
+      "id": "7th_krasnodar_base",
+      "name": "7th Krasnodar base",
+      "lat": 43.101,
+      "lon": 40.624,
+      "type": "russia",
+      "country": "Georgia",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Georgia."
+    },
+    {
+      "id": "russian_4th_military_base",
+      "name": "Russian 4th Military Base",
+      "lat": 42.39,
+      "lon": 43.922,
+      "type": "russia",
+      "country": "Georgia",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Georgia."
+    },
+    {
+      "id": "baikonur_cosmodrome",
+      "name": "Baikonur Cosmodrome",
+      "lat": 45.964,
+      "lon": 63.305,
+      "type": "russia",
+      "country": "Kazakhstan",
+      "arm": "Spaceport",
+      "status": "active",
+      "description": "Spaceport. Host: Kazakhstan."
+    },
+    {
+      "id": "sary_shagan",
+      "name": "Sary Shagan",
+      "lat": 46.383,
+      "lon": 72.866,
+      "type": "russia",
+      "country": "Kazakhstan",
+      "arm": "Anti-ballistic missile testing range",
+      "status": "active",
+      "description": "Anti-ballistic missile testing range. Host: Kazakhstan."
+    },
+    {
+      "id": "balkhash_radar_station",
+      "name": "Balkhash Radar Station",
+      "lat": 46.603,
+      "lon": 74.53,
+      "type": "russia",
+      "country": "Kazakhstan",
+      "arm": "Russian early warning radars",
+      "status": "active",
+      "description": "Russian early warning radars. Host: Kazakhstan."
+    },
+    {
+      "id": "kant_air_base",
+      "name": "Kant (air base)",
+      "lat": 42.853,
+      "lon": 74.846,
+      "type": "russia",
+      "country": "Kyrgyzstan",
+      "arm": "military air base",
+      "status": "active",
+      "description": "military air base. Host: Kyrgyzstan."
+    },
+    {
+      "id": "russian_forces_in_moldova",
+      "name": "Russian forces in Moldova",
+      "lat": 46.84,
+      "lon": 29.643,
+      "type": "russia",
+      "country": "Moldova",
+      "arm": "Task Force",
+      "status": "active",
+      "description": "Task Force. Host: Moldova."
+    },
+    {
+      "id": "khmeimim_air_base",
+      "name": "Khmeimim Air Base",
+      "lat": 35.411,
+      "lon": 35.945,
+      "type": "russia",
+      "country": "Syria",
+      "arm": "Russian Aerospace Defence Forces",
+      "status": "active",
+      "description": "Russian Aerospace Defence Forces. Host: Syria."
+    },
+    {
+      "id": "russian_naval_facility_in_tartus",
+      "name": "Russian naval facility in Tartus",
+      "lat": 34.915,
+      "lon": 35.874,
+      "type": "russia",
+      "country": "Syria",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Syria."
+    },
+    {
+      "id": "tiyas_military_airbase",
+      "name": "Tiyas Military Airbase",
+      "lat": 34.5225,
+      "lon": 37.62972,
+      "type": "russia",
+      "country": "Syria",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Syria."
+    },
+    {
+      "id": "shayrat_airbase",
+      "name": "Shayrat Airbase",
+      "lat": 34.49,
+      "lon": 36.90889,
+      "type": "russia",
+      "country": "Syria",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Syria."
+    },
+    {
+      "id": "russian_201st_military_base",
+      "name": "Russian 201st Military Base",
+      "lat": 38.536,
+      "lon": 68.78,
+      "type": "russia",
+      "country": "Tajikistan",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Tajikistan."
+    },
+    {
+      "id": "military_headquarters",
+      "name": "Military headquarters",
+      "lat": 11.79819,
+      "lon": -66.15139,
+      "type": "russia",
+      "country": "Venezuela",
+      "arm": "Combined arms",
+      "status": "planned",
+      "description": "Combined arms. Host: Venezuela. Planned/under construction."
+    },
+    {
+      "id": "unnamed_military_base_8",
+      "name": "Unnamed Military Base",
+      "lat": 13.01534,
+      "lon": 42.73724,
+      "type": "uae",
+      "country": "Eritrea",
+      "arm": "Combined arms",
+      "status": "controversial",
+      "description": "Combined arms. Host: Eritrea. Status disputed."
+    },
+    {
+      "id": "unnamed_military_base_9",
+      "name": "Unnamed Military Base",
+      "lat": 31.99809,
+      "lon": 21.19361,
+      "type": "uae",
+      "country": "Libya",
+      "arm": "Air Force",
+      "status": "controversial",
+      "description": "Air Force. Host: Libya. Status disputed."
+    },
+    {
+      "id": "unnamed_military_base_10",
+      "name": "Unnamed Military Base",
+      "lat": 10.438,
+      "lon": 44.997,
+      "type": "uae",
+      "country": "Republic of Somaliland",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Republic of Somaliland."
+    },
+    {
+      "id": "unnamed_military_base_11",
+      "name": "Unnamed Military Base",
+      "lat": 12.51,
+      "lon": 53.92,
+      "type": "uae",
+      "country": "Yemen",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Yemen."
+    },
+    {
+      "id": "rothera_research_station",
+      "name": "Rothera Research Station",
+      "lat": -67.56833,
+      "lon": -68.12583,
+      "type": "uk",
+      "country": "Disputed",
+      "arm": "British Antarctic Survey (BAS) base",
+      "status": "active",
+      "description": "British Antarctic Survey (BAS) base."
+    },
+    {
+      "id": "hms_jufair",
+      "name": "HMS Jufair",
+      "lat": 26.205,
+      "lon": 50.615,
+      "type": "uk",
+      "country": "Bahrain",
+      "arm": "British Royal Navy base",
+      "status": "active",
+      "description": "British Royal Navy base. Host: Bahrain."
+    },
+    {
+      "id": "raf_belize",
+      "name": "RAF Belize",
+      "lat": 17.544,
+      "lon": -88.305,
+      "type": "uk",
+      "country": "Belize",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force. Host: Belize."
+    },
+    {
+      "id": "british_army_jungle_warfare_training_sch",
+      "name": "British Army Jungle Warfare Training School",
+      "lat": 4.608,
+      "lon": 114.325,
+      "type": "uk",
+      "country": "Brunei",
+      "arm": "British Army's training establishment",
+      "status": "active",
+      "description": "British Army's training establishment. Host: Brunei."
+    },
+    {
+      "id": "sittang_camp",
+      "name": "Sittang Camp",
+      "lat": 4.82943,
+      "lon": 114.668,
+      "type": "uk",
+      "country": "Brunei",
+      "arm": "British Army's training establishment",
+      "status": "active",
+      "description": "British Army's training establishment. Host: Brunei."
+    },
+    {
+      "id": "kuala_belait_accommodation",
+      "name": "Kuala Belait accommodation",
+      "lat": 4.58665,
+      "lon": 114.247,
+      "type": "uk",
+      "country": "Brunei",
+      "arm": "British Army's training establishment",
+      "status": "active",
+      "description": "British Army's training establishment. Host: Brunei."
+    },
+    {
+      "id": "british_army_training_unit_suffield",
+      "name": "British Army Training Unit Suffield",
+      "lat": 50.273,
+      "lon": -111.175,
+      "type": "uk",
+      "country": "Canada",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Canada."
+    },
+    {
+      "id": "raf_troodos",
+      "name": "RAF Troodos",
+      "lat": 34.912,
+      "lon": 32.883,
+      "type": "uk",
+      "country": "Cyprus",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force. Host: Cyprus."
+    },
+    {
+      "id": "raf_akrotiri",
+      "name": "RAF Akrotiri",
+      "lat": 34.59,
+      "lon": 32.987,
+      "type": "uk",
+      "country": "Cyprus",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force. Host: Cyprus."
+    },
+    {
+      "id": "ayios_nikolaos_station",
+      "name": "Ayios Nikolaos Station",
+      "lat": 35.093,
+      "lon": 33.886,
+      "type": "uk",
+      "country": "Cyprus",
+      "arm": "British Armed Forces",
+      "status": "active",
+      "description": "British Armed Forces. Host: Cyprus."
+    },
+    {
+      "id": "westfalen_garrison",
+      "name": "Westfalen Garrison",
+      "lat": 51.778,
+      "lon": 8.72,
+      "type": "uk",
+      "country": "Germany",
+      "arm": "British garrison with facilities",
+      "status": "active",
+      "description": "British garrison with facilities. Host: Germany."
+    },
+    {
+      "id": "wulfen_barracks",
+      "name": "Wulfen barracks",
+      "lat": 51.7053,
+      "lon": 6.99875,
+      "type": "uk",
+      "country": "Germany",
+      "arm": "Munitions storage facility, British Forces Germany",
+      "status": "active",
+      "description": "Munitions storage facility, British Forces Germany. Host: Germany."
+    },
+    {
+      "id": "ayrshire_barracks",
+      "name": "Ayrshire barracks",
+      "lat": 51.1708,
+      "lon": 6.39294,
+      "type": "uk",
+      "country": "Germany",
+      "arm": "Vehicle storage site, British Forces Germany",
+      "status": "active",
+      "description": "Vehicle storage site, British Forces Germany. Host: Germany."
+    },
+    {
+      "id": "raf_gibraltar",
+      "name": "RAF Gibraltar",
+      "lat": 36.15209,
+      "lon": -5.34446,
+      "type": "uk",
+      "country": "Disputed",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force."
+    },
+    {
+      "id": "port_of_gibraltar",
+      "name": "Port of Gibraltar",
+      "lat": 36.1485,
+      "lon": -5.3652,
+      "type": "uk",
+      "country": "Gibraltar",
+      "arm": "British Royal Navy",
+      "status": "active",
+      "description": "British Royal Navy. Host: Gibraltar."
+    },
+    {
+      "id": "british_army_training_unit_kenya",
+      "name": "British Army Training Unit Kenya",
+      "lat": 0.035,
+      "lon": 37.054,
+      "type": "uk",
+      "country": "Kenya",
+      "arm": "Training support unit of the British Army",
+      "status": "active",
+      "description": "Training support unit of the British Army. Host: Kenya."
+    },
+    {
+      "id": "british_gurkha dharan",
+      "name": "British Gurkha Dharan",
+      "lat": 26.8069,
+      "lon": 87.2692,
+      "type": "uk",
+      "country": "Nepal",
+      "arm": "Movement base and regional recruiting centre",
+      "status": "active",
+      "description": "Movement base and regional recruiting centre. Host: Nepal."
+    },
+    {
+      "id": "headquarters_british_gurkhas_nepal",
+      "name": "Headquarters British Gurkhas Nepal",
+      "lat": 27.6684,
+      "lon": 85.3169,
+      "type": "uk",
+      "country": "Nepal",
+      "arm": "Focal point for organisation of transit to and fro",
+      "status": "active",
+      "description": "Focal point for organisation of transit to and fro. Host: Nepal."
+    },
+    {
+      "id": "british_gurkha_camp",
+      "name": "British Gurkha Camp",
+      "lat": 28.2475,
+      "lon": 83.9914,
+      "type": "uk",
+      "country": "Nepal",
+      "arm": "Main recruitment centre",
+      "status": "active",
+      "description": "Main recruitment centre. Host: Nepal."
+    },
+    {
+      "id": "bardufoss_air_station",
+      "name": "Bardufoss Air Station",
+      "lat": 69.0521,
+      "lon": 18.5169,
+      "type": "uk",
+      "country": "Norway",
+      "arm": "Cold weather training for Royal Air Force, British",
+      "status": "active",
+      "description": "Cold weather training for Royal Air Force, British. Host: Norway."
+    },
+    {
+      "id": "uk_joint_logistics_support_base",
+      "name": "UK Joint Logistics Support Base",
+      "lat": 19.669,
+      "lon": 57.71,
+      "type": "uk",
+      "country": "Oman",
+      "arm": "Submarines and Queen Elizabeth-class aircraft carr",
+      "status": "active",
+      "description": "Submarines and Queen Elizabeth-class aircraft carr. Host: Oman."
+    },
+    {
+      "id": "omanibritish_joint_training_area",
+      "name": "Omani-British Joint Training Area",
+      "lat": 19.014,
+      "lon": 57.7487,
+      "type": "uk",
+      "country": "Oman",
+      "arm": "Royal Army of Oman, British Army",
+      "status": "active",
+      "description": "Royal Army of Oman, British Army. Host: Oman."
+    },
+    {
+      "id": "seeb_overseas_processing_centre",
+      "name": "Seeb, Overseas Processing Centre",
+      "lat": 23.6749,
+      "lon": 58.1208,
+      "type": "uk",
+      "country": "Oman",
+      "arm": "GCHQ's Middle East spy hub",
+      "status": "active",
+      "description": "GCHQ's Middle East spy hub. Host: Oman."
+    },
+    {
+      "id": "raf_al_udeid",
+      "name": "RAF Al Udeid",
+      "lat": 25.11,
+      "lon": 51.319,
+      "type": "uk",
+      "country": "Qatar",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force. Host: Qatar."
+    },
+    {
+      "id": "british_naval_facility_base",
+      "name": "British naval facility, base",
+      "lat": 1.46411,
+      "lon": 103.826,
+      "type": "uk",
+      "country": "Singapore",
+      "arm": "British Defence Singapore Support Unit (BDSSU)",
+      "status": "active",
+      "description": "British Defence Singapore Support Unit (BDSSU). Host: Singapore."
+    },
+    {
+      "id": "raf_mount_pleasant",
+      "name": "RAF Mount Pleasant",
+      "lat": -51.822,
+      "lon": -58.447,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Air Force station",
+      "status": "active",
+      "description": "Royal Air Force station. Host: United Kingdoms."
+    },
+    {
+      "id": "raf_ascension",
+      "name": "RAF Ascension",
+      "lat": -7.969,
+      "lon": -14.393,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force. Host: United Kingdoms."
+    },
+    {
+      "id": "naval_support_facility_diego_garcia",
+      "name": "Naval Support Facility Diego Garcia",
+      "lat": 7.313,
+      "lon": 72.411,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Naval air facility",
+      "status": "active",
+      "description": "Naval air facility. Host: United Kingdoms."
+    },
+    {
+      "id": "ascension_air_force_station",
+      "name": "Ascension Air Force Station",
+      "lat": -7.9504,
+      "lon": -14.4112,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Air Force",
+      "status": "active",
+      "description": "Royal Air Force. Host: United Kingdoms."
+    },
+    {
+      "id": "warwick_camp",
+      "name": "Warwick Camp",
+      "lat": 32.2566,
+      "lon": -64.8153,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Bermuda Regiment",
+      "status": "active",
+      "description": "Royal Bermuda Regiment. Host: United Kingdoms."
+    },
+    {
+      "id": "cayman_islands_regiment",
+      "name": "Cayman Islands Regiment",
+      "lat": 19.2931,
+      "lon": -81.3784,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "A single territorial infantry battalion of the Bri",
+      "status": "active",
+      "description": "A single territorial infantry battalion of the Bri. Host: United Kingdoms."
+    },
+    {
+      "id": "a_port_facility_and_depot_for raf_mount_",
+      "name": "A port facility and depot for RAF Mount Pleasant",
+      "lat": -51.9,
+      "lon": -58.4377,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Navy",
+      "status": "active",
+      "description": "Royal Navy. Host: United Kingdoms."
+    },
+    {
+      "id": "rrh_an_early_warning_and_airspace_contro",
+      "name": "RRH, an early warning and airspace control network",
+      "lat": -52.153,
+      "lon": -60.5981,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "British Forces South Atlantic Islands",
+      "status": "active",
+      "description": "British Forces South Atlantic Islands. Host: United Kingdoms."
+    },
+    {
+      "id": "rrh_an_early_warning_and_airspace_contro_2",
+      "name": "RRH, an early warning and airspace control network",
+      "lat": -51.4252,
+      "lon": -60.5643,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "British Forces South Atlantic Islands",
+      "status": "active",
+      "description": "British Forces South Atlantic Islands. Host: United Kingdoms."
+    },
+    {
+      "id": "rrh_an_early_warning_and_airspace_contro_3",
+      "name": "RRH, an early warning and airspace control network",
+      "lat": -51.6734,
+      "lon": -58.1103,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "British Forces South Atlantic Islands",
+      "status": "active",
+      "description": "British Forces South Atlantic Islands. Host: United Kingdoms."
+    },
+    {
+      "id": "port_stanley_airport",
+      "name": "Port Stanley Airport",
+      "lat": -51.6985,
+      "lon": -57.8415,
+      "type": "uk",
+      "country": "Disputed",
+      "arm": "Falkland Islands Defence Force Headquarters",
+      "status": "active",
+      "description": "Falkland Islands Defence Force Headquarters."
+    },
+    {
+      "id": "jersey_field_squadron",
+      "name": "Jersey Field Squadron",
+      "lat": 49.1752,
+      "lon": -2.10827,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Engineer uni",
+      "status": "active",
+      "description": "Royal Engineer uni. Host: United Kingdoms."
+    },
+    {
+      "id": "royal_montserrat_defence_force_headquart",
+      "name": "Royal Montserrat Defence Force Headquarters",
+      "lat": 16.7937,
+      "lon": -62.2112,
+      "type": "uk",
+      "country": "United Kingdoms",
+      "arm": "Royal Montserrat Defence Force",
+      "status": "active",
+      "description": "Royal Montserrat Defence Force. Host: United Kingdoms."
+    },
+    {
+      "id": "firebase_fiddlers_greenfire_base",
+      "name": "Firebase Fiddler's Green(Fire base)",
+      "lat": 31.44139,
+      "lon": 64.10472,
+      "type": "us-nato",
+      "country": "Afghanistan",
+      "arm": "Marine Corps",
+      "status": "active",
+      "description": "Marine Corps. Host: Afghanistan."
+    },
+    {
+      "id": "forward_operating_base_delhi",
+      "name": "Forward Operating Base Delhi",
+      "lat": 31.13278,
+      "lon": 64.18944,
+      "type": "us-nato",
+      "country": "Afghanistan",
+      "arm": "Marine Corps",
+      "status": "active",
+      "description": "Marine Corps. Host: Afghanistan."
+    },
+    {
+      "id": "camp_dwyer",
+      "name": "Camp Dwyer",
+      "lat": 31.10111,
+      "lon": 64.06722,
+      "type": "us-nato",
+      "country": "Afghanistan",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Afghanistan."
+    },
+    {
+      "id": "forward_operating_base_geronimo",
+      "name": "Forward Operating Base Geronimo",
+      "lat": 31.40167,
+      "lon": 64.25889,
+      "type": "us-nato",
+      "country": "Afghanistan",
+      "arm": "Combined arms",
+      "status": "active",
+      "description": "Combined arms. Host: Afghanistan."
+    },
+    {
+      "id": "joint_region_marianas_andersen_afb",
+      "name": "Joint Region Marianas Andersen AFB",
+      "lat": 13.6495,
+      "lon": 144.863,
+      "type": "us-nato",
+      "country": "America",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: America."
+    },
+    {
+      "id": "andersen_air_force_base",
+      "name": "Andersen Air Force Base",
+      "lat": 13.5792,
+      "lon": 144.923,
+      "type": "us-nato",
+      "country": "America",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: America."
+    },
+    {
+      "id": "sector_guam",
+      "name": "Sector Guam",
+      "lat": 13.4373,
+      "lon": 144.713,
+      "type": "us-nato",
+      "country": "America",
+      "arm": "Coastal Guard",
+      "status": "active",
+      "description": "Coastal Guard. Host: America."
+    },
+    {
+      "id": "robertson_barracks",
+      "name": "Robertson Barracks",
+      "lat": -12.44,
+      "lon": 130.97,
+      "type": "us-nato",
+      "country": "Australia",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Australia."
+    },
+    {
+      "id": "naval_support_activity_bahrain",
+      "name": "Naval Support Activity Bahrain",
+      "lat": 26.2086,
+      "lon": 50.6097,
+      "type": "us-nato",
+      "country": "Bahrain",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Bahrain."
+    },
+    {
+      "id": "isa_air_base",
+      "name": "Isa Air Base",
+      "lat": 25.9121,
+      "lon": 50.5931,
+      "type": "us-nato",
+      "country": "Bahrain",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Bahrain."
+    },
+    {
+      "id": "usag_brussels",
+      "name": "USAG Brussels",
+      "lat": 50.8504,
+      "lon": 4.34878,
+      "type": "us-nato",
+      "country": "Belgium",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Belgium."
+    },
+    {
+      "id": "aitos_logistics_center",
+      "name": "Aitos Logistics Center",
+      "lat": 42.7,
+      "lon": 27.25,
+      "type": "us-nato",
+      "country": "Bulgaria",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Bulgaria."
+    },
+    {
+      "id": "bezmer",
+      "name": "Bezmer",
+      "lat": 42.4833,
+      "lon": 26.5,
+      "type": "us-nato",
+      "country": "Bulgaria",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Bulgaria."
+    },
+    {
+      "id": "graf_ignatievo",
+      "name": "Graf Ignatievo",
+      "lat": 42.15,
+      "lon": 24.75,
+      "type": "us-nato",
+      "country": "Bulgaria",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Bulgaria."
+    },
+    {
+      "id": "contingency_location_garoua",
+      "name": "Contingency Location Garoua",
+      "lat": 9.33307,
+      "lon": 13.3717,
+      "type": "us-nato",
+      "country": "Cameroon",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Cameroon."
+    },
+    {
+      "id": "guantanamo",
+      "name": "Guantanamo",
+      "lat": 20.1444,
+      "lon": -75.2092,
+      "type": "us-nato",
+      "country": "Cuba",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Cuba."
+    },
+    {
+      "id": "camp_lemonnier",
+      "name": "Camp Lemonnier",
+      "lat": 11.5436,
+      "lon": 43.1486,
+      "type": "us-nato",
+      "country": "Djibouti",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Djibouti."
+    },
+    {
+      "id": "raf_lakenheath",
+      "name": "RAF Lakenheath",
+      "lat": 52.4175,
+      "lon": 0.52211,
+      "type": "us-nato",
+      "country": "United Kingdoms",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: United Kingdoms."
+    },
+    {
+      "id": "royal_air_force_alconbury",
+      "name": "Royal Air Force Alconbury",
+      "lat": 52.369,
+      "lon": -0.26009,
+      "type": "us-nato",
+      "country": "United Kingdoms",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: United Kingdoms."
+    },
+    {
+      "id": "royal_air_force_croughton",
+      "name": "Royal Air Force Croughton",
+      "lat": 52.25,
+      "lon": -0.83333,
+      "type": "us-nato",
+      "country": "United Kingdoms",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: United Kingdoms."
+    },
+    {
+      "id": "raf_mildenhall",
+      "name": "RAF Mildenhall",
+      "lat": 51.4256,
+      "lon": -1.69988,
+      "type": "us-nato",
+      "country": "United Kingdoms",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: United Kingdoms."
+    },
+    {
+      "id": "campbell_barracks",
+      "name": "Campbell Barracks",
+      "lat": 49.4077,
+      "lon": 8.69079,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "landstuhl_medical_center",
+      "name": "Landstuhl Medical Center",
+      "lat": 49.4131,
+      "lon": 7.57021,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "patrick_henry_village",
+      "name": "Patrick Henry Village",
+      "lat": 49.4077,
+      "lon": 8.69079,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_ansbach",
+      "name": "USAG Ansbach",
+      "lat": 49.3,
+      "lon": 10.5833,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_bamberg",
+      "name": "USAG Bamberg",
+      "lat": 49.8987,
+      "lon": 10.9007,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_baumholder",
+      "name": "USAG Baumholder",
+      "lat": 49.6174,
+      "lon": 7.33381,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_garmisch",
+      "name": "USAG Garmisch",
+      "lat": 47.4948,
+      "lon": 11.1078,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_grafenwoehr",
+      "name": "USAG Grafenwoehr",
+      "lat": 49.7173,
+      "lon": 11.9064,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_heidelberg",
+      "name": "USAG Heidelberg",
+      "lat": 49.4077,
+      "lon": 8.69079,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usaf_hessen",
+      "name": "USAF Hessen",
+      "lat": 50.1342,
+      "lon": 8.91418,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_kaiserslautern",
+      "name": "USAG Kaiserslautern",
+      "lat": 49.443,
+      "lon": 7.77161,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_mannheim",
+      "name": "USAG Mannheim",
+      "lat": 49.4077,
+      "lon": 8.69079,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_schweinfurt",
+      "name": "USAG Schweinfurt",
+      "lat": 50.0494,
+      "lon": 10.2217,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_stuttgart",
+      "name": "USAG Stuttgart",
+      "lat": 48.7823,
+      "lon": 9.17702,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "usag_wiesbaden",
+      "name": "USAG Wiesbaden",
+      "lat": 50.0826,
+      "lon": 8.24932,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Germany."
+    },
+    {
+      "id": "ramstein",
+      "name": "Ramstein",
+      "lat": 49.443,
+      "lon": 7.77161,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Germany."
+    },
+    {
+      "id": "spangdahlem",
+      "name": "Spangdahlem",
+      "lat": 49.7556,
+      "lon": 6.63935,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Germany."
+    },
+    {
+      "id": "panzer_kaserne",
+      "name": "Panzer Kaserne",
+      "lat": 48.6849,
+      "lon": 9.02955,
+      "type": "us-nato",
+      "country": "Germany",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Germany."
+    },
+    {
+      "id": "camp_victory",
+      "name": "Camp Victory",
+      "lat": 33.3406,
+      "lon": 44.4009,
+      "type": "us-nato",
+      "country": "Iraq",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Iraq."
+    },
+    {
+      "id": "forward_operating_base_abu_ghraib",
+      "name": "Forward Operating Base Abu Ghraib",
+      "lat": 33.307,
+      "lon": 44.1869,
+      "type": "us-nato",
+      "country": "Iraq",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Iraq."
+    },
+    {
+      "id": "fob_grizzly",
+      "name": "FOB Grizzly",
+      "lat": 33.8081,
+      "lon": 44.5334,
+      "type": "us-nato",
+      "country": "Iraq",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Iraq."
+    },
+    {
+      "id": "camp_baharia",
+      "name": "Camp Baharia",
+      "lat": 33.3558,
+      "lon": 43.7861,
+      "type": "us-nato",
+      "country": "Iraq",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Iraq."
+    },
+    {
+      "id": "ain_assad_air_base",
+      "name": "Ain Assad Air Base",
+      "lat": 33.7986,
+      "lon": 42.4391,
+      "type": "us-nato",
+      "country": "Iraq",
+      "arm": "Army,Air Force,Marines",
+      "status": "active",
+      "description": "Army,Air Force,Marines. Host: Iraq."
+    },
+    {
+      "id": "dimona_radar_facility",
+      "name": "Dimona Radar Facility",
+      "lat": 30.9844,
+      "lon": 35.0735,
+      "type": "us-nato",
+      "country": "Israel",
+      "arm": "US military",
+      "status": "active",
+      "description": "US military. Host: Israel."
+    },
+    {
+      "id": "nsa_gaeta",
+      "name": "NSA Gaeta",
+      "lat": 41.2141,
+      "lon": 13.5708,
+      "type": "us-nato",
+      "country": "Italy",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Italy."
+    },
+    {
+      "id": "naval_support_activity",
+      "name": "Naval Support Activity",
+      "lat": 41.2142,
+      "lon": 9.40833,
+      "type": "us-nato",
+      "country": "Italy",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Italy."
+    },
+    {
+      "id": "naval_support_activity_2",
+      "name": "Naval Support Activity",
+      "lat": 40.8333,
+      "lon": 14.25,
+      "type": "us-nato",
+      "country": "Italy",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Italy."
+    },
+    {
+      "id": "camp_darby",
+      "name": "Camp Darby",
+      "lat": 43.6272,
+      "lon": 10.292,
+      "type": "us-nato",
+      "country": "Italy",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Italy."
+    },
+    {
+      "id": "caserma_ederle",
+      "name": "Caserma Ederle",
+      "lat": 45.5573,
+      "lon": 11.5409,
+      "type": "us-nato",
+      "country": "Italy",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Italy."
+    },
+    {
+      "id": "aviano",
+      "name": "Aviano",
+      "lat": 46.0706,
+      "lon": 12.5947,
+      "type": "us-nato",
+      "country": "Italy",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Italy."
+    },
+    {
+      "id": "fleet_actvities_sasebo",
+      "name": "Fleet Actvities Sasebo",
+      "lat": 33.1592,
+      "lon": 129.723,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Japan."
+    },
+    {
+      "id": "fleet_activities",
+      "name": "Fleet Activities",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Japan."
+    },
+    {
+      "id": "fleep_activities",
+      "name": "Fleep Activities",
+      "lat": 35.2836,
+      "lon": 139.667,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Japan."
+    },
+    {
+      "id": "camp_zama",
+      "name": "Camp Zama",
+      "lat": 35.4889,
+      "lon": 139.389,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Japan."
+    },
+    {
+      "id": "fort_buckner",
+      "name": "Fort Buckner",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Japan."
+    },
+    {
+      "id": "torii_station",
+      "name": "Torii Station",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Japan."
+    },
+    {
+      "id": "kadena",
+      "name": "Kadena",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Japan."
+    },
+    {
+      "id": "misawsa",
+      "name": "Misawsa",
+      "lat": 40.6868,
+      "lon": 141.39,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Japan."
+    },
+    {
+      "id": "yokota",
+      "name": "Yokota",
+      "lat": 35.7394,
+      "lon": 139.347,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Japan."
+    },
+    {
+      "id": "unnamed_military_base_12",
+      "name": "Unnamed Military Base",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "unnamed_military_base_13",
+      "name": "Unnamed Military Base",
+      "lat": 34.15,
+      "lon": 132.183,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_courtney",
+      "name": "Camp Courtney",
+      "lat": 26.3761,
+      "lon": 127.859,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_foster",
+      "name": "Camp Foster",
+      "lat": 26.3029,
+      "lon": 127.767,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_gonsalves",
+      "name": "Camp Gonsalves",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_hansen",
+      "name": "Camp Hansen",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_kinser",
+      "name": "Camp Kinser",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_schwab",
+      "name": "Camp Schwab",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_sd_butler",
+      "name": "Camp SD Butler",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "yontan_airfield",
+      "name": "Yontan Airfield",
+      "lat": 25.7722,
+      "lon": 126.669,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "far_east_activities",
+      "name": "Far East Activities",
+      "lat": 35.7431,
+      "lon": 139.35,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Coastal Guard",
+      "status": "active",
+      "description": "Coastal Guard. Host: Japan."
+    },
+    {
+      "id": "naval_air_facility_atsugi",
+      "name": "Naval Air Facility Atsugi",
+      "lat": 35.4567,
+      "lon": 139.45,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Japan."
+    },
+    {
+      "id": "camp_fuji",
+      "name": "Camp Fuji",
+      "lat": 35.3171,
+      "lon": 138.933,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "fleet_activities_okinawa",
+      "name": "Fleet Activities Okinawa",
+      "lat": 26.5043,
+      "lon": 127.997,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Japan."
+    },
+    {
+      "id": "torii_station_2",
+      "name": "TORII Station",
+      "lat": 26.4938,
+      "lon": 127.851,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Japan."
+    },
+    {
+      "id": "kadena_air_base",
+      "name": "Kadena Air Base",
+      "lat": 26.3545,
+      "lon": 127.766,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Japan."
+    },
+    {
+      "id": "marine_corps_base_camp_smedley_d_bulter",
+      "name": "Marine Corps Base Camp Smedley D. Bulter",
+      "lat": 26.4843,
+      "lon": 127.955,
+      "type": "us-nato",
+      "country": "Japan",
+      "arm": "Marines",
+      "status": "active",
+      "description": "Marines. Host: Japan."
+    },
+    {
+      "id": "camp_bondsteel",
+      "name": "Camp Bondsteel",
+      "lat": 42.3667,
+      "lon": 21.1333,
+      "type": "us-nato",
+      "country": "Kosovo",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Kosovo."
+    },
+    {
+      "id": "ali_al_salem_air_base",
+      "name": "Ali Al Salem Air Base",
+      "lat": 29.3487,
+      "lon": 47.5235,
+      "type": "us-nato",
+      "country": "Kuwait",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Kuwait."
+    },
+    {
+      "id": "camp_arifjan",
+      "name": "Camp Arifjan",
+      "lat": 28.8751,
+      "lon": 48.1589,
+      "type": "us-nato",
+      "country": "Kuwait",
+      "arm": "Air Force,Army,Marines,Navy,Coastal Guard",
+      "status": "active",
+      "description": "Air Force,Army,Marines,Navy,Coastal Guard. Host: Kuwait."
+    },
+    {
+      "id": "camp_buehring",
+      "name": "Camp Buehring",
+      "lat": 29.6952,
+      "lon": 47.4212,
+      "type": "us-nato",
+      "country": "Kuwait",
+      "arm": "Base",
+      "status": "active",
+      "description": "Base. Host: Kuwait."
+    },
+    {
+      "id": "kuwait_naval_base",
+      "name": "Kuwait Naval Base",
+      "lat": 28.8643,
+      "lon": 48.2775,
+      "type": "us-nato",
+      "country": "Kuwait",
+      "arm": "Army, Navy, Coastal Guard",
+      "status": "active",
+      "description": "Army, Navy, Coastal Guard. Host: Kuwait."
+    },
+    {
+      "id": "usag_schinnen",
+      "name": "USAG Schinnen",
+      "lat": 50.9433,
+      "lon": 5.88889,
+      "type": "us-nato",
+      "country": "Netherlands",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Netherlands."
+    },
+    {
+      "id": "niger_air_base_201",
+      "name": "Niger Air Base 201",
+      "lat": 16.9212,
+      "lon": 8.02595,
+      "type": "us-nato",
+      "country": "Niger",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Niger."
+    },
+    {
+      "id": "masirah_aira_base",
+      "name": "Masirah Aira Base",
+      "lat": 20.6671,
+      "lon": 58.8971,
+      "type": "us-nato",
+      "country": "Oman",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Oman."
+    },
+    {
+      "id": "rafo_thumrait",
+      "name": "RAFO Thumrait",
+      "lat": 17.6641,
+      "lon": 54.0255,
+      "type": "us-nato",
+      "country": "Oman",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Oman."
+    },
+    {
+      "id": "antonio_bautista_air_base",
+      "name": "Antonio Bautista Air Base",
+      "lat": 9.74346,
+      "lon": 118.76,
+      "type": "us-nato",
+      "country": "Philippines",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Philippines."
+    },
+    {
+      "id": "cesar_basa_air_base",
+      "name": "Cesar Basa Air Base",
+      "lat": 14.9862,
+      "lon": 120.494,
+      "type": "us-nato",
+      "country": "Philippines",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Philippines."
+    },
+    {
+      "id": "fort_magsaysay",
+      "name": "Fort Magsaysay",
+      "lat": 15.435,
+      "lon": 121.091,
+      "type": "us-nato",
+      "country": "Philippines",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Philippines."
+    },
+    {
+      "id": "lumbia_airfield",
+      "name": "Lumbia Airfield",
+      "lat": 8.4055,
+      "lon": 124.61,
+      "type": "us-nato",
+      "country": "Philippines",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Philippines."
+    },
+    {
+      "id": "mactanbenito_ebuen_air_base",
+      "name": "Mactan-Benito Ebuen Air Base",
+      "lat": 10.3129,
+      "lon": 123.978,
+      "type": "us-nato",
+      "country": "Philippines",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Philippines."
+    },
+    {
+      "id": "lajes_field",
+      "name": "Lajes Field",
+      "lat": 38.3833,
+      "lon": -28.2667,
+      "type": "us-nato",
+      "country": "Portugal",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Portugal."
+    },
+    {
+      "id": "camp_santiago",
+      "name": "Camp Santiago",
+      "lat": 17.9775,
+      "lon": -66.298,
+      "type": "us-nato",
+      "country": "Puerto Rico",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: Puerto Rico."
+    },
+    {
+      "id": "al_udeid",
+      "name": "Al Udeid",
+      "lat": 25.2793,
+      "lon": 51.5224,
+      "type": "us-nato",
+      "country": "Quatar",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Quatar."
+    },
+    {
+      "id": "prince_sultan_air_base",
+      "name": "Prince Sultan Air Base",
+      "lat": 24.0769,
+      "lon": 47.564,
+      "type": "us-nato",
+      "country": "Saudi Arabia",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Saudi Arabia."
+    },
+    {
+      "id": "comlog_westpac",
+      "name": "COMLOG Westpac",
+      "lat": 1.28967,
+      "lon": 103.85,
+      "type": "us-nato",
+      "country": "Singapore",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Singapore."
+    },
+    {
+      "id": "fleet_actvities_chinhae",
+      "name": "Fleet Actvities Chinhae",
+      "lat": 35.1028,
+      "lon": 129.04,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: South Korea."
+    },
+    {
+      "id": "camp_red_cloud",
+      "name": "Camp Red Cloud",
+      "lat": 37.7415,
+      "lon": 127.047,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: South Korea."
+    },
+    {
+      "id": "camp_stanley",
+      "name": "Camp Stanley",
+      "lat": 37.7415,
+      "lon": 127.047,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: South Korea."
+    },
+    {
+      "id": "usag_daegu",
+      "name": "USAG Daegu",
+      "lat": 35.8703,
+      "lon": 128.591,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: South Korea."
+    },
+    {
+      "id": "kunsan_ab",
+      "name": "Kunsan AB",
+      "lat": 35.9022,
+      "lon": 126.625,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: South Korea."
+    },
+    {
+      "id": "us_army_garrison_humphreys",
+      "name": "U.S. Army Garrison Humphreys",
+      "lat": 36.9651,
+      "lon": 127.033,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: South Korea."
+    },
+    {
+      "id": "osan_air_base",
+      "name": "Osan Air Base",
+      "lat": 37.091,
+      "lon": 127.031,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: South Korea."
+    },
+    {
+      "id": "k16_air_base",
+      "name": "K-16 Air Base",
+      "lat": 37.4377,
+      "lon": 127.109,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: South Korea."
+    },
+    {
+      "id": "usag_yongsan",
+      "name": "USAG Yongsan",
+      "lat": 37.5331,
+      "lon": 126.983,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: South Korea."
+    },
+    {
+      "id": "us_army_garrison_casey",
+      "name": "U.S. Army Garrison CASEY",
+      "lat": 37.8842,
+      "lon": 127.05,
+      "type": "us-nato",
+      "country": "South Korea",
+      "arm": "Army",
+      "status": "active",
+      "description": "Army. Host: South Korea."
+    },
+    {
+      "id": "naval_station",
+      "name": "Naval Station",
+      "lat": 36.6224,
+      "lon": -6.35859,
+      "type": "us-nato",
+      "country": "Spain",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: Spain."
+    },
+    {
+      "id": "izmir",
+      "name": "Izmir",
+      "lat": 38.4127,
+      "lon": 27.1384,
+      "type": "us-nato",
+      "country": "Turkey",
+      "arm": "Air Force",
+      "status": "active",
+      "description": "Air Force. Host: Turkey."
+    },
+    {
+      "id": "al_dhafra_air_base",
+      "name": "Al Dhafra Air Base",
+      "lat": 24.24,
+      "lon": 54.551,
+      "type": "us-nato",
+      "country": "United Arab Emirates",
+      "arm": "Air Force,Army",
+      "status": "active",
+      "description": "Air Force,Army. Host: United Arab Emirates."
+    },
+    {
+      "id": "port_of_jebel_ali",
+      "name": "Port of Jebel Ali",
+      "lat": 25.0249,
+      "lon": 55.0399,
+      "type": "us-nato",
+      "country": "United Arab Emirates",
+      "arm": "Air Force, Navy",
+      "status": "active",
+      "description": "Air Force, Navy. Host: United Arab Emirates."
+    },
+    {
+      "id": "fujairah_naval_base",
+      "name": "Fujairah Naval Base",
+      "lat": 25.2523,
+      "lon": 56.3652,
+      "type": "us-nato",
+      "country": "United Arab Emirates",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: United Arab Emirates."
+    },
+    {
+      "id": "navy_support_facility",
+      "name": "Navy Support Facility",
+      "lat": -7.29861,
+      "lon": 72.4016,
+      "type": "us-nato",
+      "country": "United Kingdom",
+      "arm": "Navy",
+      "status": "active",
+      "description": "Navy. Host: United Kingdom."
+    }
+  ]
+}

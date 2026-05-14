@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMission } from '../context/MissionContext';
 import { MapContainer, TileLayer, Circle, Polyline, Marker, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -130,6 +130,7 @@ const statusAccent = (status) => {
 const TinyTrendChart = ({ values = [], color = '#00e5ff', height = 68 }) => {
   const series = values.length ? values : [0, 0, 0];
   const width = 320;
+  const chartLength = 420;
   const max = Math.max(...series, 1);
   const min = Math.min(...series, 0);
   const range = Math.max(1, max - min);
@@ -147,12 +148,42 @@ const TinyTrendChart = ({ values = [], color = '#00e5ff', height = 68 }) => {
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={`M0,${height} ${points.split(' ').map((point) => `L${point}`).join(' ')} L${width},${height} Z`} fill={`url(#history-${color.replace('#', '')})`} />
-      <polyline points={points} fill="none" stroke={color} strokeWidth="2.5" />
+      <path
+        d={`M0,${height} ${points.split(' ').map((point) => `L${point}`).join(' ')} L${width},${height} Z`}
+        fill={`url(#history-${color.replace('#', '')})`}
+        style={{
+          opacity: 0,
+          animation: 'historyAreaReveal 760ms ease forwards'
+        }}
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="2.5"
+        style={{
+          strokeDasharray: chartLength,
+          strokeDashoffset: chartLength,
+          animation: 'historyLineDraw 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards'
+        }}
+      />
       {series.map((value, index) => {
         const x = (index / Math.max(series.length - 1, 1)) * width;
         const y = height - (((value - min) / range) * (height - 10)) - 5;
-        return <circle key={`${index}-${value}`} cx={x} cy={y} r="2.5" fill={color} />;
+        return (
+          <circle
+            key={`${index}-${value}`}
+            cx={x}
+            cy={y}
+            r="2.5"
+            fill={color}
+            style={{
+              opacity: 0,
+              transformOrigin: `${x}px ${y}px`,
+              animation: `historyPointReveal 280ms ease forwards ${index * 90 + 240}ms`
+            }}
+          />
+        );
       })}
     </svg>
   );
@@ -170,12 +201,62 @@ const MiniStatusBars = ({ items = [] }) => {
               background: `linear-gradient(180deg, ${item.color}, ${item.color}1a)`,
               border: `1px solid ${item.color}66`,
               borderRadius: '8px 8px 0 0',
-              boxShadow: `0 0 18px ${item.color}22`
+              boxShadow: `0 0 18px ${item.color}22`,
+              transformOrigin: 'bottom center',
+              animation: `historyBarRise 720ms cubic-bezier(0.22, 1, 0.36, 1) ${item.value * 18}ms both`
             }} />
           </div>
           <div className="mono text-muted" style={{ fontSize: '9px', marginTop: '8px', textAlign: 'center' }}>{item.label}</div>
         </div>
       ))}
+    </div>
+  );
+};
+
+const useScrollReveal = (rootRef, { threshold = 0.16, rootMargin = '0px 0px -10% 0px' } = {}) => {
+  const targetRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!targetRef.current || isVisible) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        root: rootRef?.current || null,
+        threshold,
+        rootMargin
+      }
+    );
+
+    observer.observe(targetRef.current);
+    return () => observer.disconnect();
+  }, [isVisible, rootMargin, rootRef, threshold]);
+
+  return { targetRef, isVisible };
+};
+
+const RevealBlock = ({ children, rootRef, delay = 0, y = 24, scale = 0.99, style = {} }) => {
+  const { targetRef, isVisible } = useScrollReveal(rootRef);
+
+  return (
+    <div
+      ref={targetRef}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translate3d(0,0,0) scale(1)' : `translate3d(0, ${y}px, 0) scale(${scale})`,
+        filter: isVisible ? 'blur(0px)' : 'blur(2px)',
+        transition: `opacity 560ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, transform 760ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, filter 560ms ease ${delay}ms`,
+        willChange: 'transform, opacity, filter',
+        ...style
+      }}
+    >
+      {children}
     </div>
   );
 };
@@ -205,6 +286,7 @@ function FitHistoryRoute({ route, routeDistanceMeters }) {
 }
 
 export default function MissionPostMortem() {
+  const scrollRootRef = useRef(null);
   const { historyMissions, selectedHistoryId, setSelectedHistoryId, telemetry } = useMission();
   const assetBase = import.meta.env.BASE_URL;
   const droneVideoMap = useMemo(() => ({
@@ -306,7 +388,7 @@ export default function MissionPostMortem() {
   // If no mission is selected, show the Archive List
   if (!selectedHistoryId || !selectedMission) {
     return (
-      <div style={{
+      <div ref={scrollRootRef} style={{
         display: 'flex',
         flexDirection: 'column',
         width: '100%',
@@ -319,12 +401,32 @@ export default function MissionPostMortem() {
         `,
         overflowY: 'auto'
       }}>
-        <div style={{ marginBottom: '24px' }}>
+        <style>{`
+          @keyframes historyLineDraw {
+            to { stroke-dashoffset: 0; }
+          }
+          @keyframes historyAreaReveal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes historyPointReveal {
+            from { opacity: 0; transform: scale(0.4); }
+            to { opacity: 1; transform: scale(1); }
+          }
+          @keyframes historyBarRise {
+            from { opacity: 0; transform: scaleY(0.16); }
+            to { opacity: 1; transform: scaleY(1); }
+          }
+        `}</style>
+        <RevealBlock rootRef={scrollRootRef} delay={20} style={{ marginBottom: '24px' }}>
+        <div>
            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '10px' }}>MISSION_HISTORY</div>
            <div className="display text-main" style={{ margin: 0, fontSize: '40px', lineHeight: 1 }}>Archive Overview</div>
         </div>
+        </RevealBlock>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <RevealBlock rootRef={scrollRootRef} delay={80} style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px' }}>
           {[
             ['TOTAL MISSIONS', archiveAnalytics.total, '#00e5ff'],
             ['COMPLETED', archiveAnalytics.completed, '#72ff90'],
@@ -337,8 +439,10 @@ export default function MissionPostMortem() {
             </div>
           ))}
         </div>
+        </RevealBlock>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr 0.9fr', gap: '18px', marginBottom: '28px' }}>
+        <RevealBlock rootRef={scrollRootRef} delay={130} style={{ marginBottom: '28px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 1fr 0.9fr', gap: '18px' }}>
           <div className="glass-panel" style={{ padding: '22px' }}>
             <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.14em', marginBottom: '12px' }}>MISSION STATUS DISTRIBUTION</div>
             <MiniStatusBars items={archiveAnalytics.statusBars} />
@@ -389,9 +493,11 @@ export default function MissionPostMortem() {
             </div>
           </div>
         </div>
+        </RevealBlock>
 
         <div className="flex-column" style={{ gap: '16px' }}>
           {historyMissions.map((mission, idx) => (
+            <RevealBlock key={mission.id} rootRef={scrollRootRef} delay={Math.min(260, idx * 28)} y={18} scale={0.995}>
             <div 
               key={mission.id} 
               onClick={() => setSelectedHistoryId(mission.id)}
@@ -439,6 +545,7 @@ export default function MissionPostMortem() {
                 <span className="text-cyan">➔</span>
               </div>
             </div>
+            </RevealBlock>
           ))}
         </div>
       </div>
@@ -447,10 +554,28 @@ export default function MissionPostMortem() {
 
   // If a mission is selected, show the Post-Mortem Detail View
   return (
-    <div className="print-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', padding: '32px', overflowY: 'auto', background: 'var(--bg-dark)' }}>
+    <div ref={scrollRootRef} className="print-container" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', padding: '32px', overflowY: 'auto', background: 'var(--bg-dark)' }}>
+      <style>{`
+        @keyframes historyLineDraw {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes historyAreaReveal {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes historyPointReveal {
+          from { opacity: 0; transform: scale(0.4); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes historyBarRise {
+          from { opacity: 0; transform: scaleY(0.16); }
+          to { opacity: 1; transform: scaleY(1); }
+        }
+      `}</style>
       
       {/* Detail Header */}
-      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <RevealBlock rootRef={scrollRootRef} delay={20} style={{ marginBottom: '24px' }}>
+      <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <button 
             onClick={() => setSelectedHistoryId(null)} 
@@ -471,9 +596,11 @@ export default function MissionPostMortem() {
           <button className="btn btn-primary" style={{ fontSize: '12px', padding: '12px 24px' }} onClick={() => window.print()}>EXPORT_PDF</button>
         </div>
       </div>
+      </RevealBlock>
 
       {/* Report Content (Simplified original style) */}
-      <div style={{ display: 'flex', gap: '24px', marginBottom: '32px' }}>
+      <RevealBlock rootRef={scrollRootRef} delay={80} style={{ marginBottom: '32px' }}>
+      <div style={{ display: 'flex', gap: '24px' }}>
         <div className="glass-panel" style={{ flex: 1, borderLeft: '4px solid var(--cyan-primary)', padding: '24px' }}>
           <span className="mono text-muted" style={{ fontSize: '10px' }}>ASSETS_TOTAL</span>
           <h3 className="display text-cyan" style={{ margin: '16px 0 0 0', fontSize: '24px' }}>{selectedMission.assets} UAVs</h3>
@@ -491,8 +618,10 @@ export default function MissionPostMortem() {
            <h3 className="display text-main" style={{ margin: '16px 0 0 0', fontSize: '24px' }}>{(flightDistanceMeters / 1000).toFixed(2)} KM</h3>
         </div>
       </div>
+      </RevealBlock>
 
-      <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <RevealBlock rootRef={scrollRootRef} delay={120} style={{ marginBottom: '24px' }}>
+      <div className="glass-panel" style={{ padding: '20px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
         <div>
           <div className="mono text-muted" style={{ fontSize: '10px' }}>OPERATOR</div>
           <div className="mono text-main" style={{ fontSize: '14px', marginTop: '6px' }}>{selectedMission.operatorName}</div>
@@ -526,16 +655,20 @@ export default function MissionPostMortem() {
           <div className="mono text-main" style={{ fontSize: '14px', marginTop: '6px' }}>{destinationPoint ? `${destinationPoint[0].toFixed(6)}, ${destinationPoint[1].toFixed(6)}` : '--'}</div>
         </div>
       </div>
+      </RevealBlock>
 
       {selectedMission.notes && (
-        <div className="glass-panel" style={{ padding: '20px 24px', marginBottom: '24px' }}>
+        <RevealBlock rootRef={scrollRootRef} delay={150} style={{ marginBottom: '24px' }}>
+        <div className="glass-panel" style={{ padding: '20px 24px' }}>
           <div className="mono text-muted" style={{ fontSize: '10px', marginBottom: '10px' }}>MISSION_NOTES</div>
           <div className="mono text-main" style={{ fontSize: '13px', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
             {selectedMission.notes}
           </div>
         </div>
+        </RevealBlock>
       )}
 
+      <RevealBlock rootRef={scrollRootRef} delay={190}>
       <div style={{ display: 'flex', gap: '32px', flex: 1 }}>
         <div style={{ width: '430px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
@@ -692,6 +825,7 @@ export default function MissionPostMortem() {
            </div>
         </div>
       </div>
+      </RevealBlock>
     </div>
   );
 }

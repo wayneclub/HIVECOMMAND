@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'globe.gl';
 import L from 'leaflet';
-import { CircleMarker, MapContainer, Marker, Pane, Polygon, Polyline, Popup, TileLayer, Tooltip } from 'react-leaflet';
+import { CircleMarker, GeoJSON, MapContainer, Marker, Pane, Polygon, Polyline, Popup, TileLayer, Tooltip } from 'react-leaflet';
 import { useMission } from '../context/MissionContext';
-import { WORLD_INTEL_LAYERS, WORLD_LAYER_META, WORLD_SOURCE_INFO } from '../data/worldIntelLayers';
+import { WORLD_CONFLICT_COUNTRY_ISO, WORLD_INTEL_LAYERS, WORLD_LAYER_META, WORLD_SOURCE_INFO } from '../data/worldIntelLayers';
 
 const panelStyle = {
   border: '1px solid rgba(138, 216, 255, 0.14)',
@@ -163,12 +163,111 @@ const buildIncidentQuery = (incident) => {
   return [incident.label, ...(incident.tags || []).slice(0, 3)].join(' ');
 };
 
+const createConflictCountryFeatures = (countriesGeoJson, conflictRecords) => {
+  if (!countriesGeoJson?.features?.length) return [];
+
+  const features = [];
+  const usedConflictIds = new Set();
+
+  conflictRecords.forEach((incident) => {
+    const isoCodes = WORLD_CONFLICT_COUNTRY_ISO[incident.sourceId];
+    if (!isoCodes?.length) return;
+
+    countriesGeoJson.features.forEach((feature) => {
+      const code = feature?.properties?.['ISO3166-1-Alpha-2'];
+      if (!isoCodes.includes(code)) return;
+      usedConflictIds.add(incident.id);
+      features.push({
+        type: 'Feature',
+        properties: {
+          incidentId: incident.id,
+          label: incident.label,
+          category: incident.category,
+          severity: incident.severity
+        },
+        geometry: feature.geometry
+      });
+    });
+  });
+
+  return { features, usedConflictIds };
+};
+
+const mergeCountryOverrides = (countries, overrides) => {
+  if (!countries?.features?.length) return countries;
+  if (!overrides?.features?.length) return countries;
+
+  const overrideMap = new Map(
+    overrides.features
+      .map((feature) => [feature?.properties?.['ISO3166-1-Alpha-2'], feature])
+      .filter(([code]) => typeof code === 'string')
+  );
+
+  return {
+    ...countries,
+    features: countries.features.map((feature) => {
+      const code = feature?.properties?.['ISO3166-1-Alpha-2'];
+      const override = overrideMap.get(code);
+      return override ? { ...feature, geometry: override.geometry } : feature;
+    })
+  };
+};
+
+const useScrollReveal = (rootRef, { threshold = 0.16, rootMargin = '0px 0px -8% 0px' } = {}) => {
+  const targetRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (!targetRef.current || isVisible) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      {
+        root: rootRef?.current || null,
+        threshold,
+        rootMargin
+      }
+    );
+
+    observer.observe(targetRef.current);
+    return () => observer.disconnect();
+  }, [isVisible, rootMargin, rootRef, threshold]);
+
+  return { targetRef, isVisible };
+};
+
+const RevealBlock = ({ children, rootRef, delay = 0, y = 28, scale = 0.985, style = {} }) => {
+  const { targetRef, isVisible } = useScrollReveal(rootRef);
+
+  return (
+    <div
+      ref={targetRef}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translate3d(0, 0, 0) scale(1)' : `translate3d(0, ${y}px, 0) scale(${scale})`,
+        filter: isVisible ? 'blur(0px)' : 'blur(3px)',
+        transition: `opacity 620ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, transform 780ms cubic-bezier(0.22, 1, 0.36, 1) ${delay}ms, filter 620ms ease ${delay}ms`,
+        willChange: 'transform, opacity, filter',
+        ...style
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const TinyLineChart = ({ values = [], color = '#48d7ff', height = 42 }) => {
   const normalized = values.length ? values : [0, 0, 0];
   const max = Math.max(...normalized, 1);
   const min = Math.min(...normalized, 0);
   const range = Math.max(1, max - min);
   const width = 260;
+  const chartLength = 320;
   const points = normalized.map((value, index) => {
     const x = (index / Math.max(normalized.length - 1, 1)) * width;
     const y = height - (((value - min) / range) * (height - 8)) - 4;
@@ -177,11 +276,34 @@ const TinyLineChart = ({ values = [], color = '#48d7ff', height = 42 }) => {
 
   return (
     <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
-      <polyline fill="none" stroke={color} strokeWidth="2.1" points={points} />
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2.1"
+        points={points}
+        style={{
+          strokeDasharray: chartLength,
+          strokeDashoffset: chartLength,
+          animation: 'dashboardLineDraw 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards'
+        }}
+      />
       {normalized.map((value, index) => {
         const x = (index / Math.max(normalized.length - 1, 1)) * width;
         const y = height - (((value - min) / range) * (height - 8)) - 4;
-        return <circle key={`${index}-${value}`} cx={x} cy={y} r="2" fill={color} />;
+        return (
+          <circle
+            key={`${index}-${value}`}
+            cx={x}
+            cy={y}
+            r="2"
+            fill={color}
+            style={{
+              opacity: 0,
+              transformOrigin: `${x}px ${y}px`,
+              animation: `dashboardPointReveal 280ms ease forwards ${index * 90 + 260}ms`
+            }}
+          />
+        );
       })}
     </svg>
   );
@@ -220,7 +342,9 @@ const MiniBarChart = ({ items = [] }) => {
               background: `linear-gradient(180deg, ${item.color}, ${item.color}20)`,
               boxShadow: `0 0 16px ${item.color}22`,
               borderRadius: '8px 8px 0 0',
-              border: `1px solid ${item.color}55`
+              border: `1px solid ${item.color}55`,
+              transformOrigin: 'bottom center',
+              animation: `dashboardBarRise 720ms cubic-bezier(0.22, 1, 0.36, 1) ${item.value * 2}ms both`
             }} />
           </div>
           <div className="mono text-main" style={{ fontSize: '9px', marginTop: '8px', opacity: 0.8, textAlign: 'center' }}>{item.label}</div>
@@ -300,9 +424,25 @@ function WorldSituationMap2D({
   records,
   stationPoint,
   missionOverlays,
+  countriesGeoJson,
   selectedIncidentId,
   setSelectedIncidentId
 }) {
+  const conflictRecords = useMemo(
+    () => records.filter((item) => item.category === 'conflicts'),
+    [records]
+  );
+
+  const { features: countryConflictFeatures, usedConflictIds } = useMemo(
+    () => createConflictCountryFeatures(countriesGeoJson, conflictRecords),
+    [conflictRecords, countriesGeoJson]
+  );
+
+  const fallbackConflictRecords = useMemo(
+    () => conflictRecords.filter((incident) => !usedConflictIds?.has(incident.id)),
+    [conflictRecords, usedConflictIds]
+  );
+
   return (
     <div style={{ ...panelStyle, minHeight: '760px' }}>
       <MapContainer
@@ -322,7 +462,56 @@ function WorldSituationMap2D({
         <Pane name="incidents" style={{ zIndex: 450 }} />
         <Pane name="stations" style={{ zIndex: 500 }} />
 
-        {records.filter((item) => Array.isArray(item.polygon)).map((incident) => (
+        {!!countryConflictFeatures?.length && (
+          <GeoJSON
+            data={{ type: 'FeatureCollection', features: countryConflictFeatures }}
+            style={(feature) => {
+              const incident = conflictRecords.find((item) => item.id === feature?.properties?.incidentId);
+              const color = categoryStyle.conflicts.color;
+              const active = incident?.id === selectedIncidentId;
+              return {
+                pane: 'incident-polygons',
+                color,
+                fillColor: color,
+                fillOpacity: active ? 0.18 : 0.1,
+                weight: active ? 2.2 : 1.2
+              };
+            }}
+            onEachFeature={(feature, layer) => {
+              const incident = conflictRecords.find((item) => item.id === feature?.properties?.incidentId);
+              if (!incident) return;
+              layer.on('click', () => setSelectedIncidentId(incident.id));
+              layer.bindTooltip(
+                `<div class="mono" style="font-size:10px;line-height:1.5;"><div style="color:${categoryStyle.conflicts.color};margin-bottom:4px;">◎ ${incident.label.toUpperCase()}</div><div>CONFLICT ZONES // SEV ${incident.severity}</div></div>`,
+                { sticky: true, direction: 'top', opacity: 1 }
+              );
+              layer.bindPopup(L.popup({ maxWidth: 320, className: 'dashboard-intel-popup' }).setContent('<div></div>'));
+              layer.on('popupopen', (event) => {
+                const container = event.popup.getElement()?.querySelector('.leaflet-popup-content > div');
+                if (container) {
+                  container.innerHTML = `
+                    <div style="min-width:240px;background:rgba(5,10,18,0.96);color:#f5fbff;font-family:var(--font-mono);">
+                      <div style="padding:12px 14px;border-bottom:1px solid ${categoryStyle.conflicts.color}33;background:linear-gradient(180deg, ${categoryStyle.conflicts.color}14, rgba(5,10,18,0.96));">
+                        <div class="display" style="font-size:20px;margin-bottom:4px;">${incident.label}</div>
+                        <div style="font-size:10px;letter-spacing:0.12em;color:${categoryStyle.conflicts.color};">◎ CONFLICT ZONES // ${incident.status}</div>
+                      </div>
+                      <div style="padding:12px 14px;display:grid;gap:10px;">
+                        <div style="font-size:11px;line-height:1.7;color:#d8e7f6;">${incident.detail}</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                          <div><div style="font-size:9px;color:#7f96ad;margin-bottom:4px;">COORDINATE</div><div style="font-size:10px;color:#f5fbff;">${incident.lat.toFixed(2)}, ${incident.lng.toFixed(2)}</div></div>
+                          <div><div style="font-size:9px;color:#7f96ad;margin-bottom:4px;">SEVERITY</div><div style="font-size:10px;color:${categoryStyle.conflicts.color};">SEV ${incident.severity}</div></div>
+                        </div>
+                        <div><div style="font-size:9px;color:#7f96ad;margin-bottom:4px;">SOURCE</div><div style="font-size:10px;color:#f5fbff;line-height:1.6;">${incident.source}</div></div>
+                      </div>
+                    </div>
+                  `;
+                }
+              });
+            }}
+          />
+        )}
+
+        {fallbackConflictRecords.filter((item) => Array.isArray(item.polygon)).map((incident) => (
           <Polygon
             key={`poly-${incident.id}`}
             positions={incident.polygon}
@@ -334,7 +523,11 @@ function WorldSituationMap2D({
               weight: incident.id === selectedIncidentId ? 2 : 1
             }}
             eventHandlers={{ click: () => setSelectedIncidentId(incident.id) }}
-          />
+          >
+            <Popup maxWidth={320} className="dashboard-intel-popup">
+              <IncidentPopupContent incident={incident} />
+            </Popup>
+          </Polygon>
         ))}
 
         {stationPoint && records.slice(0, 10).map((incident) => (
@@ -606,6 +799,7 @@ function FleetReadout({ swarms, unassignedDrones, formatAltitude, formatSpeed })
 }
 
 export default function DashboardHome() {
+  const scrollRootRef = useRef(null);
   const mission = useMission() || {};
   const {
     currentUser = null,
@@ -637,6 +831,7 @@ export default function DashboardHome() {
   const [intelFeed, setIntelFeed] = useState({ summary: '', items: [] });
   const [intelLoading, setIntelLoading] = useState(false);
   const [intelError, setIntelError] = useState('');
+  const [countriesGeoJson, setCountriesGeoJson] = useState(null);
 
   const swarms = telemetry?.swarms || [];
   const unassignedDrones = telemetry?.unassignedDrones || [];
@@ -795,8 +990,34 @@ export default function DashboardHome() {
     };
   }, [selectedIncident]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCountryGeometry = async () => {
+      try {
+        const [countriesRes, overridesRes] = await Promise.all([
+          fetch(`${import.meta.env.BASE_URL}data/countries.geojson`),
+          fetch(`${import.meta.env.BASE_URL}data/country-boundary-overrides.geojson`)
+        ]);
+
+        const countries = countriesRes.ok ? await countriesRes.json() : null;
+        const overrides = overridesRes.ok ? await overridesRes.json() : null;
+        if (!cancelled) {
+          setCountriesGeoJson(mergeCountryOverrides(countries, overrides));
+        }
+      } catch {
+        if (!cancelled) setCountriesGeoJson(null);
+      }
+    };
+
+    loadCountryGeometry();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <div className="dashboard-scroll" style={{
+    <div ref={scrollRootRef} className="dashboard-scroll" style={{
       height: '100%',
       maxHeight: '100%',
       overflowY: 'auto',
@@ -836,19 +1057,75 @@ export default function DashboardHome() {
           border-radius: 999px;
           box-shadow: 0 0 18px rgba(72, 215, 255, 0.16);
         }
+        @keyframes dashboardLineDraw {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes dashboardPointReveal {
+          from { opacity: 0; transform: scale(0.4); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes dashboardBarRise {
+          from { opacity: 0; transform: scaleY(0.18); }
+          to { opacity: 1; transform: scaleY(1); }
+        }
+        .dashboard-intel-popup .leaflet-popup-content-wrapper {
+          background: transparent;
+          box-shadow: none;
+          border-radius: 0;
+          padding: 0;
+        }
+        .dashboard-intel-popup .leaflet-popup-content {
+          margin: 0;
+        }
+        .dashboard-intel-popup .leaflet-popup-tip-container {
+          margin-top: -1px;
+        }
+        .dashboard-intel-popup .leaflet-popup-tip {
+          background: rgba(5, 10, 18, 0.96);
+          box-shadow: none;
+        }
+        .dashboard-intel-popup .leaflet-popup-close-button {
+          color: #9fb8cd;
+          padding: 8px 10px 0 0;
+        }
+        .dashboard-intel-popup .leaflet-popup-close-button:hover {
+          color: #ffffff;
+          background: transparent;
+        }
+        .leaflet-tooltip {
+          background: rgba(5, 10, 18, 0.96);
+          border: 1px solid rgba(138, 216, 255, 0.2);
+          box-shadow: 0 14px 30px rgba(0,0,0,0.35);
+          color: #f5fbff;
+        }
+        .leaflet-tooltip-top:before {
+          border-top-color: rgba(5, 10, 18, 0.96);
+        }
+        .leaflet-tooltip-bottom:before {
+          border-bottom-color: rgba(5, 10, 18, 0.96);
+        }
+        .leaflet-tooltip-left:before {
+          border-left-color: rgba(5, 10, 18, 0.96);
+        }
+        .leaflet-tooltip-right:before {
+          border-right-color: rgba(5, 10, 18, 0.96);
+        }
       `}</style>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px', marginBottom: '16px' }}>
-        <div>
-          <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.18em', marginBottom: '10px' }}>GLOBAL LIVE THEATER</div>
-          <div className="display" style={{ fontSize: '42px', color: '#f5fbff', lineHeight: 1 }}>WORLD MONITOR</div>
+      <RevealBlock rootRef={scrollRootRef} delay={20} style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '18px' }}>
+          <div>
+            <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.18em', marginBottom: '10px' }}>GLOBAL LIVE THEATER</div>
+            <div className="display" style={{ fontSize: '42px', color: '#f5fbff', lineHeight: 1 }}>WORLD MONITOR</div>
+          </div>
+          <div className="mono text-muted" style={{ fontSize: '9px', letterSpacing: '0.14em', paddingTop: '6px' }}>
+            {WORLD_SOURCE_INFO.label} // {WORLD_SOURCE_INFO.value}
+          </div>
         </div>
-        <div className="mono text-muted" style={{ fontSize: '9px', letterSpacing: '0.14em', paddingTop: '6px' }}>
-          {WORLD_SOURCE_INFO.label} // {WORLD_SOURCE_INFO.value}
-        </div>
-      </div>
+      </RevealBlock>
 
-      <div style={{ position: 'relative', marginBottom: '18px' }}>
+      <RevealBlock rootRef={scrollRootRef} delay={90} y={36} scale={0.992} style={{ marginBottom: '18px' }}>
+      <div style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', left: '18px', top: '18px', zIndex: 700, width: '274px' }}>
           <div style={{ ...panelStyle, padding: '12px 14px', background: 'rgba(7, 14, 24, 0.82)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
@@ -951,6 +1228,7 @@ export default function DashboardHome() {
             records={filteredRecords}
             stationPoint={stationPoint}
             missionOverlays={missionOverlays}
+            countriesGeoJson={countriesGeoJson}
             selectedIncidentId={selectedIncidentId}
             setSelectedIncidentId={setSelectedIncidentId}
           />
@@ -992,13 +1270,15 @@ export default function DashboardHome() {
           ))}
         </div>
       </div>
+      </RevealBlock>
 
-      <div style={{ marginBottom: '18px' }}>
+      <RevealBlock rootRef={scrollRootRef} delay={120} y={18} scale={0.996} style={{ marginBottom: '18px' }}>
         <VitalStrip stats={vitalStats} />
-      </div>
+      </RevealBlock>
 
       <div className="dashboard-grid-bottom">
         <div style={{ display: 'grid', gap: '18px' }}>
+          <RevealBlock rootRef={scrollRootRef} delay={160}>
           <div style={{ ...panelStyle, padding: '16px' }}>
             <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '12px' }}>SELECTED INTELLIGENCE</div>
             {selectedIncident ? (
@@ -1029,16 +1309,20 @@ export default function DashboardHome() {
               <div className="mono text-muted" style={{ fontSize: '11px' }}>NO INCIDENT MATCHES THE CURRENT FILTER.</div>
             )}
           </div>
+          </RevealBlock>
 
+          <RevealBlock rootRef={scrollRootRef} delay={220}>
           <IncidentIntelPanel
             incident={selectedIncident}
             intelFeed={intelFeed}
             intelLoading={intelLoading}
             intelError={intelError}
           />
+          </RevealBlock>
         </div>
 
         <div style={{ display: 'grid', gap: '18px' }}>
+          <RevealBlock rootRef={scrollRootRef} delay={180}>
           <div style={{ ...panelStyle, padding: '16px' }}>
             <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '12px' }}>MISSION INTELLIGENCE</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px', marginBottom: '14px' }}>
@@ -1069,9 +1353,13 @@ export default function DashboardHome() {
               <MiniBarChart items={historySummary.trendBars} />
             </div>
           </div>
+          </RevealBlock>
 
-          <EventStream items={historySummary.eventStream} />
+          <RevealBlock rootRef={scrollRootRef} delay={240}>
+            <EventStream items={historySummary.eventStream} />
+          </RevealBlock>
 
+          <RevealBlock rootRef={scrollRootRef} delay={280}>
           <div style={{ ...panelStyle, padding: '16px' }}>
             <div className="mono text-cyan" style={{ fontSize: '11px', letterSpacing: '0.16em', marginBottom: '12px' }}>OPERATIONAL CONTEXT</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px', marginBottom: '12px' }}>
@@ -1102,13 +1390,16 @@ export default function DashboardHome() {
               <div className="mono" style={{ fontSize: '10px', color: '#ffb07a', lineHeight: 1.8 }}>{historySummary.latestLog}</div>
             </div>
           </div>
+          </RevealBlock>
 
+          <RevealBlock rootRef={scrollRootRef} delay={320}>
           <FleetReadout
             swarms={swarms}
             unassignedDrones={unassignedDrones}
             formatAltitude={formatAltitude}
             formatSpeed={formatSpeed}
           />
+          </RevealBlock>
         </div>
       </div>
     </div>
